@@ -5,20 +5,18 @@
 #include "universe_util.h"
 #include "gldrv/winsys.h"
 
-namespace shipCommands
-{
-	static inline float fmin( float a, float b )
-	{
+namespace shipCommands {
+
+    static inline float vs_fmin(float a, float b) {
 		return (a < b) ? a : b;
 	}
-	static inline float fmax( float a, float b )
-	{
+
+    static inline float vs_fmax(float a, float b) {
 		return (a > b) ? a : b;
 	}
-}
+} // end namespace
 
-class ShipCommands
-{
+class ShipCommands {
     Functor< ShipCommands > *csetkps;
     Functor< ShipCommands > *cleft;
     Functor< ShipCommands > *cright;
@@ -90,7 +88,9 @@ public:
     void down( bool *isKeyDown );
     void roll( bool *isKeyDown );
     void setkps( const char *in );
-};
+}; // end class
+
+
 //these _would_ work if the physics routines polled the ship_commands object
 //for these bools..
 void ShipCommands::pymenu()
@@ -121,8 +121,7 @@ void ShipCommands::roll( bool *isKeyDown )
 
 static ShipCommands *ship_commands = NULL;
 
-void ShipCommands::setkps( const char *in )
-{
+void ShipCommands::setkps(const char *in) {
     if (in == NULL) throw "What speed?";
     float kps    = XMLSupport::parse_float( std::string( in ) );
     Unit *player = UniverseUtil::getPlayer();
@@ -135,18 +134,16 @@ void ShipCommands::setkps( const char *in )
 
         else
             kps /= display_in_meters ? 1.0f : 3.6f;
-        player->GetComputerData().set_speed = shipCommands::fmin( player->GetComputerData().max_speed(), kps );
+        player->GetComputerData().set_speed = shipCommands::vs_fmin( player->GetComputerData().max_speed(), kps);
     }
 }
 
-void InitShipCommands()
-{
+void InitShipCommands() {
     if (ship_commands) delete ship_commands;
     ship_commands = new ShipCommands;
 }
 
-void UninitShipCommands()
-{
+void UninitShipCommands() {
     if (ship_commands) delete ship_commands;
     ship_commands = NULL;
 }
