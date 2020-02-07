@@ -38,6 +38,7 @@
 #include "universe_generic.h"
 #include "csv.h"
 #include "vs_random.h"
+#include "vs_math.h"
 #include "galaxy_xml.h"
 #include "gfx/camera.h"
 #include "util_vsphysics.h"

@@ -43,6 +43,8 @@
 
 #if defined (HAVE_MATH_H)
  #include <math.h>
+#else
+ float copysign( float x, float y );
 #endif
 #if  defined (HAVE_FINITE) || defined (BSD)
  #define FINITE( x ) ( finite( x ) )

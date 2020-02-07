@@ -28,10 +28,6 @@ static const float oocc = (float) 0.0000000000000000111265005605; //1/c^2
 static const float c    = (float) 299792458.0;
 static const float co10 = (float) 29979245.8;
 
-namespace vsphysics
-{
-	float copysign( float x, float y );
-}
 
 struct Force
 {
