@@ -11,10 +11,10 @@ cmake_minimum_required(VERSION 2.4)
 project (vsUTCS)
 
 
-
 include_directories(${vsUTCS_SOURCE_DIR}/src
 					${vsUTCS_SOURCE_DIR}/src/cmd
 					${vsUTCS_BINARY_DIR} )
+include_directories(/usr/include/harfbuzz/)
 
 add_library(netlowlevel    src/networking/lowlevel/netbuffer.cpp
 						   src/networking/lowlevel/netui.cpp
