@@ -396,8 +396,8 @@ public:
         return mounts.size();
     }
     void ClearMounts();
-//Loads a user interface for the user to upgrade his ship
-//Uses base stuff -> only in Unit
+    //Loads a user interface for the user to upgrade his ship
+    //Uses base stuff -> only in Unit
     virtual void UpgradeInterface( Unit *base ) {}
 
     bool canUpgrade( const Unit *upgrador,
@@ -420,7 +420,7 @@ public:
                   bool gen_downgrade_list = true );
     int RepairCost();                            //returns how many things need to be repaired--if nothing is damaged it will return 1 for labor.  doesn't assume any given cost on such thigns.
     int RepairUpgrade();                 //returns how many things were repaired
-//returns percentOperational,maxPercentOperational,and whether mount is damaged (1 is damaged, 0 is fine, -1 is invalid mount)
+    //returns percentOperational,maxPercentOperational,and whether mount is damaged (1 is damaged, 0 is fine, -1 is invalid mount)
     bool RepairUpgradeCargo( Cargo *item, Unit *baseUnit, float *credits );           //item must not be NULL but baseUnit/credits are only used for pricing.
     Vector MountPercentOperational( int whichmount );
     bool ReduceToTemplate();
@@ -439,9 +439,9 @@ public:
                     bool gen_downgrade_list = true );
 
 protected:
-//Mount may access unit
+    //Mount may access unit
     friend class Mount;
-//no collision table presence.
+    //no collision table presence.
 
 /*
  **************************************************************************************
@@ -463,10 +463,10 @@ public:
         return unit_role;
     }
     void unitRole( unsigned char );
-//following 2 are legacy functions for python export only
+    //following 2 are legacy functions for python export only
     void setCombatRole( const std::string &s );
     const std::string& getCombatRole() const;
-//end legacy functions
+    //end legacy functions
     const std::string& getUnitRole() const;
     void setUnitRole( const std::string &s );
     const std::string& getAttackPreference() const;
@@ -475,44 +475,43 @@ protected:
     unsigned char attack_preference;
     unsigned char unit_role;
     Nebula *nebula;
-//The orbit needs to have access to the velocity directly to disobey physics laws to precalculate orbits
+    //The orbit needs to have access to the velocity directly to disobey physics laws to precalculate orbits
     friend class PlanetaryOrbit;
     friend class ContinuousTerrain;
-//VDU needs mount data to draw weapon displays
+    //VDU needs mount data to draw weapon displays
     friend class VDU;
-//needed to actually upgrade unit through interface
+    //needed to actually upgrade unit through interface
     friend class UpgradingInfo;
 public:
-//Have to pass the randnum and degrees in networking and client side since they must not be random in that case
+    //Have to pass the randnum and degrees in networking and client side since they must not be random in that case
     void DamageRandSys( float dam, const Vector &vec, float randum = 1, float degrees = 1 );
     void SetNebula( Nebula* );
     inline Nebula * GetNebula() const
     {
         return nebula;
     }
-//Should draw selection box?
-//Process all meshes to be deleted
+    //Should draw selection box?
+    //Process all meshes to be deleted
     static void ProcessDeleteQueue();
-//Returns the cockpit name so that the controller may load a new cockpit
+    //Returns the cockpit name so that the controller may load a new cockpit
     const std::string& getCockpit() const;
 
-//Shouldn't do anything here - but needed by Python
+    //Shouldn't do anything here - but needed by Python
     class Cockpit * GetVelocityDifficultyMult( float& ) const;
 
-//the star system I'm in
+    //the star system I'm in
     StarSystem *activeStarSystem;
-//Takes out of the collide table for this system.
+    //Takes out of the collide table for this system.
     void RemoveFromSystem();
     void RequestPhysics();               //Requeues the unit so that it is simulated ASAP
     bool InCorrectStarSystem( StarSystem* );
-    virtual int nummesh() const
-    {
+    unsigned int nummesh() const {
         return ( (int) meshdata.size() )-1;
     }
-//Uses planet stuff
-/* Updates the collide Queue with any possible change in sectors
- *  Split this mesh with into 2^level submeshes at arbitrary planes
- *  Uses Mesh so only in Unit and maybe in NetUnit */
+    //Uses planet stuff
+    /* Updates the collide Queue with any possible change in sectors
+    *  Split this mesh with into 2^level submeshes at arbitrary planes
+    *  Uses Mesh so only in Unit and maybe in NetUnit */
     virtual void Split( int level ) {}
     virtual void addHalo( const char *filename,
                           const QVector &loc,
@@ -521,29 +520,29 @@ public:
                           std::string halo_type,
                           float activation ) {}
 
-//Uses Mesh -> in NetUnit and Unit only
+    //Uses Mesh -> in NetUnit and Unit only
     std::vector< Mesh* >StealMeshes();
-/* Begin and continue explosion
- *  Uses GFX so only in Unit class
- *  But should always return true on server side = assuming explosion time=0 here */
+    /* Begin and continue explosion
+    *  Uses GFX so only in Unit class
+    *  But should always return true on server side = assuming explosion time=0 here */
     virtual bool Explode( bool draw, float timeit );
-//explodes then deletes
+    //explodes then deletes
     void Destroy();
 
-//Uses GFX so only in Unit class
+    //Uses GFX so only in Unit class
     virtual void Draw( const Transformation &quat = identity_transformation, const Matrix &m = identity_matrix ) {}
     virtual void DrawNow( const Matrix &m = identity_matrix, float lod = 1000000000 ) {}
 
-//Sets the camera to be within this unit.
-//Uses Universe & GFX so not needed here -> only in Unit class
+    //Sets the camera to be within this unit.
+    //Uses Universe & GFX so not needed here -> only in Unit class
     virtual void UpdateHudMatrix( int whichcam ) {}
-//What's the HudImage of this unit
-//Uses GFX stuff so only in Unit class
+    //What's the HudImage of this unit
+    //Uses GFX stuff so only in Unit class
     virtual VSSprite * getHudImage() const
     {
         return NULL;
     }
-//Not needed just in Unit class
+    //Not needed just in Unit class
     
     // Uses GFX, so generic version is a no-op. 
     // GameUnit variants (clientside) would apply the overrides to their GFX techniques
@@ -558,17 +557,16 @@ public:
 public:
     const std::vector< std::string >& GetDestinations() const;
     void AddDestination( const std::string& );
-/**
- * The computer holds all data in the navigation computer of the current unit
- * It is outside modifyable with GetComputerData() and holds only volatile
- * Information inside containers so that destruction of containers will not
- * result in segfaults.
- * Maximum speeds and turning restrictions are merely facts of the computer
- * and have nothing to do with the limitations of the physical nature
- * of space combat
- */
-    class Computer
-    {
+    /**
+    * The computer holds all data in the navigation computer of the current unit
+    * It is outside modifyable with GetComputerData() and holds only volatile
+    * Information inside containers so that destruction of containers will not
+    * result in segfaults.
+    * Maximum speeds and turning restrictions are merely facts of the computer
+    * and have nothing to do with the limitations of the physical nature
+    * of space combat
+    */
+    class Computer {
     public:
         class RADARLIM
         {
@@ -603,13 +601,13 @@ public:
                     IFF_PLANE  = Brand::PLANE << IFF_UPPER_SHIFT
                 };
             };
-//the max range the radar can handle
+            //the max range the radar can handle
             float maxrange;
-//the dot with (0,0,1) indicating the farthest to the side the radar can handle.
+            //the dot with (0,0,1) indicating the farthest to the side the radar can handle.
             float maxcone;
             float lockcone;
             float trackingcone;
-//The minimum radius of the target
+            //The minimum radius of the target
             float mintargetsize;
             // What kind of type and capability the radar supports
             int   capability;
@@ -632,36 +630,36 @@ public:
         }
         radar;
         bool ecmactive;
-//The nav point the unit may be heading for
+        //The nav point the unit may be heading for
         Vector NavPoint;
-//The target that the unit has in computer
+        //The target that the unit has in computer
         UnitContainer target;
-//Any target that may be attacking and has set this threat
+        //Any target that may be attacking and has set this threat
         UnitContainer threat;
-//Unit that it should match velocity with (not speed) if null, matches velocity with universe frame (star)
+        //Unit that it should match velocity with (not speed) if null, matches velocity with universe frame (star)
         UnitContainer velocity_ref;
         bool  force_velocity_ref;
-//The threat level that was calculated from attacking unit's threat
+        //The threat level that was calculated from attacking unit's threat
         float threatlevel;
-//The speed the flybywire system attempts to maintain
+        //The speed the flybywire system attempts to maintain
         float set_speed;
-//Computers limitation of speed
+        //Computers limitation of speed
         float max_combat_speed;
         float max_combat_ab_speed;
         float max_speed() const;
         float max_ab_speed() const;
-//Computer's restrictions of YPR to limit space combat maneuvers
+        //Computer's restrictions of YPR to limit space combat maneuvers
         float max_yaw_left;
         float max_yaw_right;
         float max_pitch_down;
         float max_pitch_up;
         float max_roll_left;
         float max_roll_right;
-//Whether or not an 'lead' indicator appears in front of target
+        //Whether or not an 'lead' indicator appears in front of target
         unsigned char slide_start;
         unsigned char slide_end;
         bool itts;
-//tells whether the speed is clamped draconian-like or not
+        //tells whether the speed is clamped draconian-like or not
         bool combat_mode;
         Computer() : NavPoint( 0, 0, 0 )
             , threatlevel( 0 )
@@ -682,7 +680,7 @@ public:
     computer;
     void SwitchCombatFlightMode();
     bool CombatMode();
-//SHOULD TRY TO COME BACK HERE
+    //SHOULD TRY TO COME BACK HERE
     virtual bool TransferUnitToSystem( StarSystem *NewSystem );
     virtual bool TransferUnitToSystem( unsigned int whichJumpQueue,
                                        class StarSystem*&previouslyActiveStarSystem,
@@ -723,9 +721,9 @@ public:
  */
 
 public:
-//Unit XML Load information
+    //Unit XML Load information
     struct XML;
-//Loading information
+    //Loading information
     XML *xml;
 
     static void beginElement( void *userData, const XML_Char *name, const XML_Char **atts );
@@ -742,10 +740,10 @@ protected:
     static std::string subunitSerializer( const struct XMLType &input, void *mythis );
 
 public:
-//tries to warp as close to un as possible abiding by the distances of various enemy ships...it might not make it all the way
+    //tries to warp as close to un as possible abiding by the distances of various enemy ships...it might not make it all the way
     void WriteUnit( const char *modificationname = "" );
     std::string WriteUnitString();
-//Loads a unit from an xml file into a complete datastructure
+    //Loads a unit from an xml file into a complete datastructure
     void LoadXML( const char *filename, const char *unitModifications = "", std::string *xmlbuffer = NULL );
     void LoadXML( VSFileSystem::VSFile &f, const char *unitModifications = "", std::string *xmlbuffer = NULL );
 
@@ -762,59 +760,59 @@ protected:
 public:
     bool AutoPilotToErrorMessage( Unit *un, bool automaticenergyrealloc, std::string &failuremessage, int recursive_level = 2 );
     bool AutoPilotTo( Unit *un, bool automaticenergyrealloc );
-//The owner of this unit. This may not collide with owner or units owned by owner. Do not dereference (may be dead pointer)
+    //The owner of this unit. This may not collide with owner or units owned by owner. Do not dereference (may be dead pointer)
     void *owner;                                 //void ensures that it won't be referenced by accident
-//The number of frames ahead this was put in the simulation queue
+    //The number of frames ahead this was put in the simulation queue
     unsigned int   sim_atom_multiplier;
-//The number of frames ahead this is predicted to be scheduled in the next scheduling round
+    //The number of frames ahead this is predicted to be scheduled in the next scheduling round
     unsigned int   predicted_priority;
-//The previous state in last physics frame to interpolate within
+    //The previous state in last physics frame to interpolate within
     Transformation prev_physical_state;
-//The state of the current physics frame to interpolate within
+    //The state of the current physics frame to interpolate within
     Transformation curr_physical_state;
-//When will physical simulation occur
+    //When will physical simulation occur
     unsigned int   cur_sim_queue_slot;
-//Used with subunit scheduling, to avoid the complex ickiness of having to synchronize scattered slots
+    //Used with subunit scheduling, to avoid the complex ickiness of having to synchronize scattered slots
     unsigned int   last_processed_sqs;
-//Whether or not to schedule subunits for deferred physics processing - if not, they're processed at the same time the parent unit is being processed
+    //Whether or not to schedule subunits for deferred physics processing - if not, they're processed at the same time the parent unit is being processed
     bool do_subunit_scheduling;
-//Does this unit require special scheduling?
+    //Does this unit require special scheduling?
     enum schedulepriorityenum {scheduleDefault, scheduleAField, scheduleRoid}
     schedule_priority;
-//number of meshes (each with separate texture) this unit has
-//The cumulative (incl subunits parents' transformation)
+    //number of meshes (each with separate texture) this unit has
+    //The cumulative (incl subunits parents' transformation)
     Matrix cumulative_transformation_matrix;
-//The cumulative (incl subunits parents' transformation)
+    //The cumulative (incl subunits parents' transformation)
     Transformation cumulative_transformation;
-//The velocity this unit has in World Space
+    //The velocity this unit has in World Space
     Vector cumulative_velocity;
-//The force applied from outside accrued over the whole physics frame
+    //The force applied from outside accrued over the whole physics frame
     Vector NetForce;
-//The force applied by internal objects (thrusters)
+    //The force applied by internal objects (thrusters)
     Vector NetLocalForce;
-//The torque applied from outside objects
+    //The torque applied from outside objects
     Vector NetTorque;
-//The torque applied from internal objects
+    //The torque applied from internal objects
     Vector NetLocalTorque;
-//the current velocities in LOCAL space (not world space)
+    //the current velocities in LOCAL space (not world space)
     Vector AngularVelocity;
     Vector Velocity;
-//The image that will appear on those screens of units targetting this unit
+    //The image that will appear on those screens of units targetting this unit
     UnitImages< void > *pImage;
-//positive for the multiplier applied to nearby spec starships (1 = planetary/inert effects) 0 is default (no effect), -X means 0 but able to be enabled
+    //positive for the multiplier applied to nearby spec starships (1 = planetary/inert effects) 0 is default (no effect), -X means 0 but able to be enabled
     float  specInterdiction;
-//mass of this unit (may change with cargo)
+    //mass of this unit (may change with cargo)
     float  Mass;
     float  HeatSink;
 protected:
-//are shields tight to the hull.  zero means bubble
+    //are shields tight to the hull.  zero means bubble
     float  shieldtight;
-//fuel of this unit
+    //fuel of this unit
     float  fuel;
-    float  afterburnenergy;              //short fix
-    int    afterburntype;                        //0--energy, 1--fuel
-//-1 means it is off. -2 means it doesn't exist. otherwise it's engaged to destination (positive number)
-//Moment of intertia of this unit
+    float  afterburnenergy;    //short fix
+    int    afterburntype;      //0--energy, 1--fuel
+    //-1 means it is off. -2 means it doesn't exist. otherwise it's engaged to destination (positive number)
+    //Moment of intertia of this unit
     float  Momentofinertia;
     Vector SavedAccel;
 
@@ -822,23 +820,23 @@ public:
     class Limits
     {
 public:
-//max ypr--both pos/neg are symmetrical
+        //max ypr--both pos/neg are symmetrical
         float  yaw;
         float  pitch;
         float  roll;
-//side-side engine thrust max
+        //side-side engine thrust max
         float  lateral;
-//vertical engine thrust max
+        //vertical engine thrust max
         float  vertical;
-//forward engine thrust max
+        //forward engine thrust max
         float  forward;
-//reverse engine thrust max
+        //reverse engine thrust max
         float  retro;
-//after burner acceleration max
+        //after burner acceleration max
         float  afterburn;
-//the vector denoting the "front" of the turret cone!
+        //the vector denoting the "front" of the turret cone!
         Vector structurelimits;
-//the minimum dot that the current heading can have with the structurelimit
+        //the minimum dot that the current heading can have with the structurelimit
         float  limitmin;
 
         Limits() : yaw( 0 )
@@ -853,19 +851,19 @@ public:
             , limitmin( 0 ) {}
     }
     limits;
-//-1 is not available... ranges between 0 32767 for "how invisible" unit currently is (32768... -32768) being visible)
+    //-1 is not available... ranges between 0 32767 for "how invisible" unit currently is (32768... -32768) being visible)
     int   cloaking;                              //short fix
-//the minimum cloaking value...
+    //the minimum cloaking value...
     int   cloakmin;                              //short fix
-//How big is this unit
+    //How big is this unit
     float radial_size;
 protected:
-//Is dead already?
+    //Is dead already?
     bool  killed;
-//Should not be drawn
+    //Should not be drawn
     enum INVIS {DEFAULTVIS=0x0, INVISGLOW=0x1, INVISUNIT=0x2, INVISCAMERA=0x4};
     unsigned char invisible;             //1 means turn off glow, 2 means turn off ship
-//corners of object
+    //corners of object
 
 public:
     Vector corner_min, corner_max;
@@ -873,17 +871,17 @@ public:
     {
         return ToLocalCoordinates( ( un->Position()-Position() ).Cast() );
     }
-//how visible the ship is from 0 to 1
+    //how visible the ship is from 0 to 1
     float CloakVisible() const
     {
         if (cloaking < 0) return 1;
         return ( (float) cloaking )/2147483647;
     }
-//cloaks or decloaks the starship depending on the bool
+    //cloaks or decloaks the starship depending on the bool
     virtual void Cloak( bool cloak );
-//deletes
+    //deletes
     void Kill( bool eraseFromSave = true, bool quitting = false );
-//Is dead yet?
+    //Is dead yet?
     inline bool Killed() const
     {
         return killed;
@@ -892,8 +890,8 @@ public:
     // 0 = not stated, 1 = done
     float ExplodingProgress() const;
 
-//returns the current ammt of armor left
-//short fix
+    //returns the current ammt of armor left
+    //short fix
     float AfterburnData() const
     {
         return afterburnenergy;
@@ -902,7 +900,7 @@ public:
     float FuelData() const;
     float WarpCapData() const;
     void SetFuel( float f );
-//Returns the current ammt of energy left
+    //Returns the current ammt of energy left
     float EnergyRechargeData() const
     {
         return recharge;
@@ -919,7 +917,7 @@ public:
     }
     float EnergyData() const;
     float WarpEnergyData() const;
-//short fix
+    //short fix
     float GetWarpEnergy() const
     {
         return warpenergy;
@@ -927,15 +925,15 @@ public:
     void DecreaseWarpEnergy( bool insystem, float time = 1.0f );
     void IncreaseWarpEnergy( bool insystem, float time = 1.0f );
     bool RefillWarpEnergy();
-//Should we resolve forces on this unit (is it free to fly or in orbit)
+    //Should we resolve forces on this unit (is it free to fly or in orbit)
     bool resolveforces;
-//What's the size of this unit
+    //What's the size of this unit
     float rSize() const
     {
         return radial_size;
     }
 
-//Returns the current world space position
+    //Returns the current world space position
     QVector Position() const
     {
         return cumulative_transformation.position;
@@ -944,14 +942,14 @@ public:
     {
         return cumulative_transformation_matrix;
     }
-//Returns the unit-space position
+    //Returns the unit-space position
     QVector LocalPosition() const
     {
         return curr_physical_state.position;
     }
-//Sets the unit-space position
+    //Sets the unit-space position
     void SetPosition( const QVector &pos );
-///Sets the cumulative transformation matrix's position...for setting up to be out in the middle of nowhere
+    ///Sets the cumulative transformation matrix's position...for setting up to be out in the middle of nowhere
     void SetCurPosition( const QVector &pos )
     {
         curr_physical_state.position = pos;
@@ -962,44 +960,44 @@ public:
         cumulative_transformation_matrix.p = pos;
         cumulative_transformation.position = pos;
     }
-//Sets the state of drawing
+    //Sets the state of drawing
     void SetVisible( bool isvis );
     void SetAllVisible( bool isvis );
     void SetGlowVisible( bool isvis );
 
-//Rotates about the axis
+    //Rotates about the axis
     void Rotate( const Vector &axis );
-/**
- * Fire engine takes a unit vector for direction
- * and how fast the fuel speed and mass coming out are
- */
-/*unit vector... might default to "r"*/
+    /**
+    * Fire engine takes a unit vector for direction
+    * and how fast the fuel speed and mass coming out are
+    */
+    /*unit vector... might default to "r"*/
     void FireEngines( const Vector &Direction, float FuelSpeed, float FMass );
-//applies a force for the whole gameturn upon the center of mass
+    //applies a force for the whole gameturn upon the center of mass
     void ApplyForce( const Vector &Vforce );
-//applies a force for the whole gameturn upon the center of mass, using local coordinates
+    //applies a force for the whole gameturn upon the center of mass, using local coordinates
     void ApplyLocalForce( const Vector &Vforce );
-//applies a force that is multipled by the mass of the ship
+    //applies a force that is multipled by the mass of the ship
     void Accelerate( const Vector &Vforce );
-//Apply a torque in world level coords
+    //Apply a torque in world level coords
     void ApplyTorque( const Vector &Vforce, const QVector &Location );
-//Applies a torque in local level coordinates
+    //Applies a torque in local level coordinates
     void ApplyLocalTorque( const Vector &Vforce, const Vector &Location );
-//usually from thrusters remember if I have 2 balanced thrusters I should multiply their effect by 2 :)
+    //usually from thrusters remember if I have 2 balanced thrusters I should multiply their effect by 2 :)
     void ApplyBalancedLocalTorque( const Vector &Vforce, const Vector &Location );
 
-//convenient shortcut to applying torques with vector and position
+    //convenient shortcut to applying torques with vector and position
     void ApplyLocalTorque( const Vector &torque );
-//Applies damage to the local area given by pnt
+    //Applies damage to the local area given by pnt
     float ApplyLocalDamage( const Vector &pnt,
                             const Vector &normal,
                             float amt,
                             Unit *affectedSubUnit,
                             const GFXColor&,
                             float phasedamage = 0 );
-//Applies damage from network data
+    //Applies damage from network data
     void ApplyNetDamage( Vector &pnt, Vector &normal, float amt, float ppercentage, float spercentage, GFXColor &color );
-//Applies damage to the pre-transformed area of the ship
+    //Applies damage to the pre-transformed area of the ship
     void ApplyDamage( const Vector &pnt,
                       const Vector &normal,
                       float amt,
@@ -1007,44 +1005,44 @@ public:
                       const GFXColor&,
                       void *ownerDoNotDereference,
                       float phasedamage = 0 );
-//Lights the shields, without applying damage or making the AI mad - useful for special effects
+    //Lights the shields, without applying damage or making the AI mad - useful for special effects
     void LightShields( const Vector &pnt, const Vector &normal, float amt, const GFXColor &color );
-//Deals remaining damage to the hull at point and applies lighting effects
-//short fix
+    //Deals remaining damage to the hull at point and applies lighting effects
+    //short fix
     float DealDamageToHullReturnArmor( const Vector &pnt, float Damage, float* &targ );
     virtual void ArmorDamageSound( const Vector &pnt ) {}
     virtual void HullDamageSound( const Vector &pnt ) {}
     float DealDamageToHull( const Vector &pnt, float Damage );
-//Clamps thrust to the limits struct
+    //Clamps thrust to the limits struct
     Vector ClampThrust( const Vector &thrust, bool afterburn );
-//Takes a unit vector for direction of thrust and scales to limits
+    //Takes a unit vector for direction of thrust and scales to limits
     Vector MaxThrust( const Vector &thrust );
-//Thrusts by ammt and clamps accordingly (afterburn or not)
+    //Thrusts by ammt and clamps accordingly (afterburn or not)
     virtual void Thrust( const Vector &amt, bool afterburn = false );
-//Applies lateral thrust
+    //Applies lateral thrust
     void LateralThrust( float amt );
-//Applies vertical thrust
+    //Applies vertical thrust
     void VerticalThrust( float amt );
-//Applies forward thrust
+    //Applies forward thrust
     void LongitudinalThrust( float amt );
-//Clamps desired velocity to computer set limits
+    //Clamps desired velocity to computer set limits
     Vector ClampVelocity( const Vector &velocity, const bool afterburn );
-//Clamps desired angular velocity to computer set limits
+    //Clamps desired angular velocity to computer set limits
     Vector ClampAngVel( const Vector &vel );
-//Clamps desired torque to computer set limits of thrusters
+    //Clamps desired torque to computer set limits of thrusters
     Vector ClampTorque( const Vector &torque );
-//scales unit size torque to limits in that direction
+    //scales unit size torque to limits in that direction
     Vector MaxTorque( const Vector &torque );
-//Applies a yaw of amt
+    //Applies a yaw of amt
     void YawTorque( float amt );
-//Applies a pitch of amt
+    //Applies a pitch of amt
     void PitchTorque( float amt );
-//Applies a roll of amt
+    //Applies a roll of amt
     void RollTorque( float amt );
-//executes a repair if the repair bot is up to it
+    //executes a repair if the repair bot is up to it
     void Repair();
-//Updates physics given unit space transformations and if this is the last physics frame in the current gfx frame
-//Not needed here, so only in NetUnit and Unit classes
+    //Updates physics given unit space transformations and if this is the last physics frame in the current gfx frame
+    //Not needed here, so only in NetUnit and Unit classes
     void UpdatePhysics( const Transformation &trans,
                         const Matrix &transmat,
                         const Vector &CumulativeVelocity,
@@ -1059,14 +1057,14 @@ public:
                                  const Vector &CumulativeVelocity,
                                  bool ResolveLast,
                                  UnitCollection *uc = NULL );
-//Useful if you want to override subunit processing, but not self-processing (Asteroids, people?)
+    //Useful if you want to override subunit processing, but not self-processing (Asteroids, people?)
     virtual void UpdateSubunitPhysics( const Transformation &trans,
                                        const Matrix &transmat,
                                        const Vector &CumulativeVelocity,
                                        bool ResolveLast,
                                        UnitCollection *uc,
                                        Unit *superunit );
-//A helper for those who override UpdateSubunitPhysics - Process one subunit (also, an easier way of overriding subunit processing uniformly)
+    //A helper for those who override UpdateSubunitPhysics - Process one subunit (also, an easier way of overriding subunit processing uniformly)
     virtual void UpdateSubunitPhysics( Unit *subunit,
                                        const Transformation &trans,
                                        const Matrix &transmat,
@@ -1075,35 +1073,35 @@ public:
                                        UnitCollection *uc,
                                        Unit *superunit );
     void AddVelocity( float difficulty );
-//Resolves forces of given unit on a physics frame
+    //Resolves forces of given unit on a physics frame
     virtual Vector ResolveForces( const Transformation&, const Matrix& );
-//Returns the pqr oritnattion of the unit in world space
+    //Returns the pqr oritnattion of the unit in world space
     void SetOrientation( QVector q, QVector r );
     void SetOrientation( Quaternion Q );
     void SetOrientation( QVector p, QVector q, QVector r );
     void GetOrientation( Vector &p, Vector &q, Vector &r ) const;
     Vector GetNetAcceleration();
-//acceleration, retrieved from NetForce - not stable (partial during simulation), use GetAcceleration()
+    //acceleration, retrieved from NetForce - not stable (partial during simulation), use GetAcceleration()
     Vector GetAcceleration() const
     {
         return SavedAccel;
     }
-//acceleration, stable over the simulation
+    //acceleration, stable over the simulation
     float GetMaxAccelerationInDirectionOf( const Vector &ref, bool afterburn ) const;
-//Transforms a orientation vector Up a coordinate level. Does not take position into account
+    //Transforms a orientation vector Up a coordinate level. Does not take position into account
     Vector UpCoordinateLevel( const Vector &v ) const;
-//Transforms a orientation vector Down a coordinate level. Does not take position into account
+    //Transforms a orientation vector Down a coordinate level. Does not take position into account
     Vector DownCoordinateLevel( const Vector &v ) const;
-//Transforms a orientation vector from world space to local space. Does not take position into account
+    //Transforms a orientation vector from world space to local space. Does not take position into account
     Vector ToLocalCoordinates( const Vector &v ) const;
-//Transforms a orientation vector to world space. Does not take position into account
+    //Transforms a orientation vector to world space. Does not take position into account
     Vector ToWorldCoordinates( const Vector &v ) const;
-//Returns unit-space ang velocity
+    //Returns unit-space ang velocity
     const Vector& GetAngularVelocity() const
     {
         return AngularVelocity;
     }
-//Return unit-space velocity
+    //Return unit-space velocity
     const Vector& GetVelocity() const
     {
         return cumulative_velocity;
@@ -1119,14 +1117,14 @@ public:
     {
         return Mass+fuel;
     }
-//returns the ammt of elasticity of collisions with this unit
+    //returns the ammt of elasticity of collisions with this unit
     float GetElasticity();
-//returns given limits (should not be necessary with clamping functions)
+    //returns given limits (should not be necessary with clamping functions)
     const Limits& Limits() const
     {
         return limits;
     }
-//Sets if forces should resolve on this unit or not
+    //Sets if forces should resolve on this unit or not
     void SetResolveForces( bool );
 
 /*
@@ -1135,15 +1133,15 @@ public:
  **************************************************************************************
  */
 public:
-//Armor and shield structures
+    //Armor and shield structures
     Armor  armor;
     Shield shield;
-//The structual integ of the current unit
+    //The structual integ of the current unit
     float  hull;
-//current energy
+    //current energy
     float  energy;
 protected:
-//Activates all guns of that size
+    //Activates all guns of that size
     void ActivateGuns( const weapon_info*, bool Missile );
     float MaxShieldVal() const;
 //regenerates all 2,4, or 6 shields for 1 SIMULATION_ATOM

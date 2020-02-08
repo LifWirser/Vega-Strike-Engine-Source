@@ -111,12 +111,6 @@ template < class UnitType >GameUnit< UnitType >::~GameUnit()
 }
 
 template < class UnitType >
-int GameUnit< UnitType >::nummesh() const
-{
-    return ( (int) this->meshdata.size() )-1;
-}
-
-template < class UnitType >
 void GameUnit< UnitType >::UpgradeInterface( Unit *baseun )
 {
     string basename = ( ::getCargoUnitName( baseun->getFullname().c_str() ) );
