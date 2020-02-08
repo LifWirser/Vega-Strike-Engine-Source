@@ -170,18 +170,19 @@ void Unit::SetMaxEnergy( float maxen )
 }
 
 Vector Unit::GetWarpVelocity() const {
-    Vector VelocityRef( 0, 0, 0 ); {
-        Unit *vr = const_cast< UnitContainer* > (&computer.velocity_ref)->GetUnit();
-        if (vr)
-            VelocityRef = vr->cumulative_velocity;
-    }
-
-    Vector vel = cumulative_velocity-VelocityRef;
     if (graphicOptions.WarpFieldStrength == 1.) {
         // Short circuit, most ships won't be at warp, so it simplifies math a lot
-        return vel+VelocityRef;
+        return cumulative_velocity;
     } else {
+        Vector VelocityRef( 0, 0, 0 ); {
+            Unit *vr = const_cast< UnitContainer* > (&computer.velocity_ref)->GetUnit();
+            if (vr) {
+                VelocityRef = vr->cumulative_velocity;
+            }
+        }
+
         //return(cumulative_velocity*graphicOptions.WarpFieldStrength);
+        Vector vel   = cumulative_velocity-VelocityRef;
         float  speed = vel.Magnitude();
         //return vel*graphicOptions.WarpFieldStrength;
         if (speed > 0) {
@@ -783,10 +784,13 @@ Unit::~Unit() {
     }
 
     free( pImage->cockpit_damage );
-    if ( (!killed) )
+    if ( (!killed) ) {
         VSFileSystem::vs_fprintf( stderr, "Assumed exit on unit %s(if not quitting, report error)\n", name.get().c_str() );
-    if (ucref)
+    }
+    if (ucref) {
         VSFileSystem::vs_fprintf( stderr, "DISASTER AREA!!!!" );
+    }
+    VSFileSystem::vs_dprintf( 3, "Deallocating unit %s addr=0x%08x refs=%d\n", name.get().c_str(), this, ucref );
 #ifdef DESTRUCTDEBUG
     VSFileSystem::vs_fprintf( stderr, "stage %d %x %d\n", 0, this, ucref );
     fflush( stderr );
@@ -2158,21 +2162,17 @@ void Unit::UpdatePhysics( const Transformation &trans,
                           const Vector &cum_vel,
                           bool lastframe,
                           UnitCollection *uc,
-                          Unit *superunit )
-{
+                          Unit *superunit ) {
     static float VELOCITY_MAX = XMLSupport::parse_float( vs_config->getVariable( "physics", "velocity_max", "10000" ) );
-    static float SPACE_DRAG   = XMLSupport::parse_float( vs_config->getVariable( "physics", "unit_space_drag", "0.000000" ) );
+    static float SPACE_DRAG   = XMLSupport::parse_float( vs_config->getVariable( "p    hysics", "unit_space_drag", "0.000000" ) );
     static float EXTRA_CARGO_SPACE_DRAG =
         XMLSupport::parse_float( vs_config->getVariable( "physics", "extra_space_drag_for_cargo", "0.005" ) );
 
-    //Save information about when this happened
+    // Save information about when this happened
     unsigned int cur_sim_frame = _Universe->activeStarSystem()->getCurrentSimFrame();
-    //Well, wasn't skipped actually, but...
+    // Well, wasn't skipped actually, but...
     this->last_processed_sqs = cur_sim_frame;
     this->cur_sim_queue_slot = (cur_sim_frame+this->sim_atom_multiplier)%SIM_QUEUE_SIZE;
-    if (maxhull < 0) {
-        this->Explode( true, 0 );
-    }
     Transformation old_physical_state = curr_physical_state;
     if (docked&DOCKING_UNITS)
         PerformDockingOperations();
@@ -2278,7 +2278,7 @@ void Unit::UpdatePhysics( const Transformation &trans,
                 } else {
                     computer.velocity_ref = nextVelRef;
                 }
-            }
+            }    
         }
     }
     static string LockingSoundName     = vs_config->getVariable( "unitaudio", "locking", "locking.wav" );
@@ -2329,7 +2329,7 @@ void Unit::UpdatePhysics( const Transformation &trans,
                         } else if (mounts[i].time_to_lock > 0) {
                             locking = true;
                             if ( !AUDIsPlaying( LockingPlay ) ) {
-                                if (LockingPlay == LockingSoundTorp)
+                                if (LockingPlay == LockingSoundTorp)    
                                     UniverseUtil::musicMute( TorpLockTrumpsMusic );
 
                                 else
@@ -2451,11 +2451,14 @@ void Unit::UpdatePhysics( const Transformation &trans,
         }
         if (!jumpDirect) {
             _Universe->activeStarSystem()->JumpTo( this, NULL,
-                                                   NearestSystem( _Universe->activeStarSystem()->getFileName(),
-                                                                  curr_physical_state.position ), true, true );
+                NearestSystem( _Universe->activeStarSystem()->getFileName(),
+                  curr_physical_state.position ), true, true );
         }
     }
-//Really kill the unit only in non-networking or on server side
+    if (maxhull < 0) {
+        this->Explode( true, 0 );
+    }
+    //Really kill the unit only in non-networking or on server side
     if (hull < 0) {
         dead &= (pImage->pExplosion == NULL);
         if (dead)
@@ -2548,8 +2551,9 @@ void Unit::UpdateSubunitPhysics( Unit *subunit,
     }
 }
 
-float CalculateNearestWarpUnit( const Unit *thus, float minmultiplier, Unit **nearest_unit, bool count_negative_warp_units )
-{
+float CalculateNearestWarpUnit( const Unit *thus,
+    float minmultiplier, Unit **nearest_unit,
+    bool count_negative_warp_units) {
     static float  smallwarphack     = XMLSupport::parse_float( vs_config->getVariable( "physics", "minwarpeffectsize", "100" ) );
     static float  bigwarphack       =
         XMLSupport::parse_float( vs_config->getVariable( "physics", "maxwarpeffectsize", "10000000" ) );
@@ -2731,13 +2735,13 @@ void Unit::UpdatePhysics2( const Transformation &trans,
                            const Matrix &transmat,
                            const Vector &cum_vel,
                            bool lastframe,
-                           UnitCollection *uc )
-{
-    Cockpit *cp = _Universe->isPlayerStarship( this );
-    //Only in non-networking OR networking && is a player OR SERVER && not a player
-    if ( (Network == NULL && !SERVER) || (Network != NULL && cp && !SERVER) || (SERVER) )
-        if (AngularVelocity.i || AngularVelocity.j || AngularVelocity.k)
+                           UnitCollection *uc ) {
+    // Only in non-networking OR networking && is a player OR SERVER && not a player
+    if ( (SERVER) || (Network == NULL && !SERVER) || (Network != NULL && !SERVER && _Universe->isPlayerStarship(this) )) {
+        if (AngularVelocity.i || AngularVelocity.j || AngularVelocity.k) {
             Rotate( SIMULATION_ATOM*(AngularVelocity) );
+        }
+    }
     //SERVERSIDE ONLY : If it is not a player, it is a unit controlled by server so compute changes
     if (SERVER) {
         AddVelocity( difficulty );
@@ -4575,12 +4579,12 @@ void Unit::Kill( bool erasefromsave, bool quitting )
         }
     }
     //eraticate everything. naturally (see previous line) we won't erraticate beams erraticated above
-    if ( !isSubUnit() )
+    if ( !isSubUnit() ) {
         RemoveFromSystem();
-    killed = true;
+    }
     computer.target.SetUnit( NULL );
 
-    //God I can't believe this next line cost me 1 GIG of memory until I added it
+    // I can't believe this next line cost me 1 GIG of memory until I added it
     computer.threat.SetUnit( NULL );
     computer.velocity_ref.SetUnit( NULL );
     computer.force_velocity_ref = true;
@@ -4589,15 +4593,21 @@ void Unit::Kill( bool erasefromsave, bool quitting )
         aistate->Destroy();
     }
     aistate = NULL;
+
+    // The following we don't want to do twice
+    killed = true;
     Unit *un;
     for (un_iter iter = getSubUnits(); (un = *iter); ++iter)
         un->Kill();
 
-    if (isUnit() != MISSILEPTR)
-        VSFileSystem::vs_dprintf( 1, "UNIT HAS DIED: %s %s (file %s)\n", name.get().c_str(),
-               fullname.c_str(), filename.get().c_str() );
+    if (isUnit() != MISSILEPTR) {
+        VSFileSystem::vs_dprintf( 1, "UNIT HAS DIED: %s %s (file %s, addr 0x%08x)\n", name.get().c_str(),
+               fullname.c_str(), filename.get().c_str(), this );
+    }
 
     if (ucref == 0) {
+        VSFileSystem::vs_dprintf( 3, "UNIT DELETION QUEUED: %s %s (file %s, addr 0x%08x)\n", name.get().c_str(),
+          fullname.c_str(), filename.get().c_str(), this );
         Unitdeletequeue.push_back( this );
         if (flightgroup)
             if (flightgroup->leader.GetUnit() == this)
@@ -9058,8 +9068,7 @@ bool MeshAnimation::Init(const char *filename, int faction,
 	}
 }
 
-void MeshAnimation::AnimationStep()
-{
+void MeshAnimation::AnimationStep() {
 #ifdef DEBUG_MESH_ANI
 	std::cerr << "Starting animation step of Unit: " << uniqueUnitName << std::endl;
 #endif
@@ -9093,8 +9102,7 @@ void MeshAnimation::AnimationStep()
 #endif
 }
 
-void MeshAnimation::UpdateFrames()
-{
+void MeshAnimation::UpdateFrames() {
 	std::map< string, Unit * >::iterator pos;
 	for(pos = Units.begin(); pos != Units.end(); ++pos)
 	{
@@ -9106,16 +9114,14 @@ void MeshAnimation::UpdateFrames()
 	}
 }
 
-void MeshAnimation::addAnimation( std::vector<Mesh *> *meshes, const char* name )
-{
+void MeshAnimation::addAnimation( std::vector<Mesh *> *meshes, const char* name ) {
     if( (meshes->size() > 0) && animatedMesh ) {
         vecAnimations.push_back( meshes );
         vecAnimationNames.push_back(string(name));
     }
 }
 
-void MeshAnimation::StartAnimation( unsigned int how_many_times, int numAnimation )
-{
+void MeshAnimation::StartAnimation( unsigned int how_many_times, int numAnimation ) {
     bool infiniteLoop;
     if(!how_many_times)
         infiniteLoop = true;
@@ -9128,18 +9134,15 @@ void MeshAnimation::StartAnimation( unsigned int how_many_times, int numAnimatio
     done = false;
 }
 
-void MeshAnimation::StopAnimation()
-{
+void MeshAnimation::StopAnimation() {
     done = true;
 }
 
-string MeshAnimation::getAnimationName(unsigned int animationNumber) const
-{
-	return vecAnimationNames.at(animationNumber);
+string MeshAnimation::getAnimationName(unsigned int animationNumber) const {
+    return vecAnimationNames.at(animationNumber);
 }
 
-unsigned int MeshAnimation::getAnimationNumber(const char *name) const
-{
+unsigned int MeshAnimation::getAnimationNumber(const char *name) const  {
 	string strname(name);
 	for(unsigned int i=0;i<vecAnimationNames.size();i++)
 		if(strname == vecAnimationNames[i])
@@ -9148,15 +9151,13 @@ unsigned int MeshAnimation::getAnimationNumber(const char *name) const
 	return 0; //NOT FOUND!
 }
 
-void MeshAnimation::ChangeAnimation( const char *name )
-{
+void MeshAnimation::ChangeAnimation( const char *name ) {
 	unsigned int AnimNumber = getAnimationNumber(name);
     if( (AnimNumber < numAnimations()) && isAnimatedMesh() )
         activeAnimation = AnimNumber;
 }
 
-void MeshAnimation::ChangeAnimation( unsigned int AnimNumber )
-{
+void MeshAnimation::ChangeAnimation( unsigned int AnimNumber ) {
     if( (AnimNumber < numAnimations()) && isAnimatedMesh() )
         activeAnimation = AnimNumber;
 }
