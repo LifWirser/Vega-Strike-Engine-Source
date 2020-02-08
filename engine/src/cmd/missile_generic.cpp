@@ -11,8 +11,9 @@
 #include "ai/order.h"
 #include "faction_generic.h"
 #include "unit_util.h"
-void StarSystem::UpdateMissiles()
-{
+#include "vsfilesystem.h"
+
+void StarSystem::UpdateMissiles() {
     //WARNING: This is a big performance problem...
     //...responsible for many hiccups.
     //TODO: Make it use the collidemap to only iterate through potential hits...
@@ -28,8 +29,86 @@ void StarSystem::UpdateMissiles()
         dischargedMissiles.pop_back();
     }
 }
+
+void MissileEffect::DoApplyDamage(Unit *parent, Unit *un, float distance, float damage_fraction)
+{
+    QVector norm = pos-un->Position();
+    norm.Normalize();
+    float damage_left = 1.f;
+    if (un->hasSubUnits()) {
+        /*
+         * Compute damage aspect ratio of each subunit with their apparent size ( (radius/distance)^2 )
+         * and spread damage across affected subunits based on their apparent size vs total spread surface
+         */
+        double total_area = 0.0f;
+        {
+            un_kiter ki = un->viewSubUnits();
+            for (const Unit *subun; (subun = *ki); ++ki) {
+                if (subun->Killed()) continue;
+                double r = subun->rSize();
+                double d = (pos - subun->Position()).Magnitude() - r;
+                if (d > radius) continue;
+                if (d < 0.01) d = 0.01;
+                total_area += (r*r) / (d*d);
+            }
+        }
+        if (total_area > 0)
+            VSFileSystem::vs_dprintf( 1, "Missile subunit damage of %.3f%%\n", (total_area * (100.0 / 4.0*M_PI)) );
+        if (total_area < 4.0*M_PI) total_area = 4.0*M_PI;
+
+        un_iter i = un->getSubUnits();
+        for (Unit *subun; (subun = *i); ++i) {
+            if (subun->Killed()) continue;
+            double r = subun->rSize();
+            double d = (pos - subun->Position()).Magnitude() - r;
+            if (d > radius) continue;
+            if (d < 0.01) d = 0.01;
+            double a = (r*r) / (d*d*total_area);
+            DoApplyDamage(parent, subun, d, a * damage_fraction);
+            damage_left -= a;
+        }
+    }
+    if (damage_left > 0) {
+        VSFileSystem::vs_dprintf( 1, "Missile damaging %s/%s (dist=%.3f r=%.3f dmg=%.3f)\n",
+            parent->name.get().c_str(), ((un == parent) ? "." : un->name.get().c_str()),
+            distance, radius, damage*damage_fraction*damage_left);
+        parent->ApplyDamage( pos.Cast(), norm, damage*damage_fraction*damage_left, un, GFXColor( 1,1,1,1 ),
+            ownerDoNotDereference, phasedamage*damage_fraction*damage_left );
+    }
+}
+
 void MissileEffect::ApplyDamage( Unit *smaller )
 {
+    QVector norm = pos-smaller->Position();
+    float smaller_rsize = smaller->rSize();
+    float distance = norm.Magnitude()-smaller_rsize;            // no better check than the bounding sphere for now
+    if ( distance < radius) {                                   // "smaller->isUnit() != MISSILEPTR &&" was removed - why disable antimissiles?
+        if ( distance < 0)
+            distance = 0.f;                                     //it's inside the bounding sphere, so we'll not reduce the effect
+        if (radialmultiplier < .001) radialmultiplier = .001;
+        float dist_part=distance/radialmultiplier;              //radialmultiplier is radius of the set damage
+        float damage_mul;
+        if ( dist_part > 1.f) {                                  // there can be something else, such as different eye- and ear- candy
+            damage_mul = 1/(dist_part*dist_part);
+        }
+        else {
+            damage_mul = 2.f - dist_part*dist_part;
+        }
+        /*
+         *  contrived formula to create paraboloid falloff rather than quadratic peaking at 2x damage at origin
+         *  k = 2-distance^2/radmul^2
+         * 
+         * if the explosion itself was a weapon, it would have double the base damage, longrange=0.5 (counted at Rm) and more generic form:
+         * Kclose = 1-(1-longrange)*(R/Rm)^2
+         * Kfar   = longrange/(R/Rm)^2
+         * or Kapprox = longrange/(longrange-(R/Rm)^3*(1-longrange)) ; obviously, with more checks preventing /0
+         */
+        DoApplyDamage(smaller, smaller, distance, damage_mul);
+    }
+}
+/* old function
+ * kept for temporary reference
+void MissileEffect::ApplyDamage( Unit *smaller ) {
     float rad  = (smaller->Position().Cast()-pos).Magnitude()-smaller->rSize();
     if (rad < .001) rad = .001;
     float orig = rad;
@@ -40,53 +119,54 @@ void MissileEffect::ApplyDamage( Unit *smaller )
                 ( radialmultiplier*radialmultiplier*radialmultiplier*radialmultiplier
                  /( (2*radialmultiplier*radialmultiplier)-(orig*orig) ) );
         }
-        /*
-         *  contrived formula to create paraboloid falloff rather than quadratic peaking at 2x damage at origin
-         *  rad = radmul^4/(2radmul^2-orig^2)
-         */
+         //  contrived formula to create paraboloid falloff rather than quadratic peaking at 2x damage at origin
+         /  rad = radmul^4/(2radmul^2-orig^2)
         rad = rad/(radialmultiplier*radialmultiplier);           //where radialmultiplier is radius of point with 0 falloff
 
         Vector norm( pos-smaller->Position().Cast() );
         norm.Normalize();
-        smaller->ApplyDamage( pos, norm, damage/rad, smaller, GFXColor( 1,
-                                                                        1,
-                                                                        1,
-                                                                        1 ), ownerDoNotDereference, phasedamage
-                              > 0 ? phasedamage/rad : 0 );
+        smaller->ApplyDamage(
+            pos, norm, damage/rad, smaller,
+            GFXColor( 1,
+                1,
+                1,
+                1 ),
+            ownerDoNotDereference,
+            phasedamage > 0 ? phasedamage/rad : 0
+        );
     }
 }
+*/
 
-float Missile::ExplosionRadius()
-{
+float Missile::ExplosionRadius() {
     static float missile_multiplier =
         XMLSupport::parse_float( vs_config->getVariable( "graphics", "missile_explosion_radius_mult", "1" ) );
 
     return radial_effect*(missile_multiplier);
 }
 
-void StarSystem::AddMissileToQueue( MissileEffect *me )
-{
+void StarSystem::AddMissileToQueue( MissileEffect *me ) {
     dischargedMissiles.push_back( me );
 }
-void Missile::Discharge()
-{
+
+void Missile::Discharge() {
     if ( (damage != 0 || phasedamage != 0) && !discharged )
         _Universe->activeStarSystem()->AddMissileToQueue( new MissileEffect( Position().Cast(), damage, phasedamage,
                                                                              radial_effect, radial_multiplier, owner ) );
     discharged = true;
 }
-void Missile::Kill( bool erase )
-{
+
+void Missile::Kill( bool erase ) {
     Discharge();
     Unit::Kill( erase );
 }
+
 void Missile::reactToCollision( Unit *smaller,
-                                const QVector &biglocation,
-                                const Vector &bignormal,
-                                const QVector &smalllocation,
-                                const Vector &smallnormal,
-                                float dist )
-{
+    const QVector &biglocation,
+    const Vector &bignormal,
+    const QVector &smalllocation,
+    const Vector &smallnormal,
+    float dist ) {
     static bool doesmissilebounce = XMLSupport::parse_bool( vs_config->getVariable( "physics", "missile_bounce", "false" ) );
     if (doesmissilebounce)
         Unit::reactToCollision( smaller, biglocation, bignormal, smalllocation, smallnormal, dist );
@@ -100,8 +180,7 @@ void Missile::reactToCollision( Unit *smaller,
     }
 }
 
-Unit * getNearestTarget( Unit *me )
-{
+Unit * getNearestTarget( Unit *me ) {
     return NULL;     //THIS FUNCTION IS TOO SLOW__AND ECM SHOULD WORK DIFFERENTLY ANYHOW...WILL SAVE FIXING IT FOR LATER
 
     QVector pos( me->Position() );
@@ -138,15 +217,15 @@ Unit * getNearestTarget( Unit *me )
     }
     return targ;
 }
+
 void Missile::UpdatePhysics2( const Transformation &trans,
-                              const Transformation &old_physical_state,
-                              const Vector &accel,
-                              float difficulty,
-                              const Matrix &transmat,
-                              const Vector &CumulativeVelocity,
-                              bool ResolveLast,
-                              UnitCollection *uc )
-{
+    const Transformation &old_physical_state,
+    const Vector &accel,
+    float difficulty,
+    const Matrix &transmat,
+    const Vector &CumulativeVelocity,
+    bool ResolveLast,
+    UnitCollection *uc ) {
     Unit *targ;
     if ( ( targ = ( Unit::Target() ) ) ) {
         had_target = true;
@@ -218,4 +297,3 @@ void Missile::UpdatePhysics2( const Transformation &trans,
     if (time < 0)
         DealDamageToHull( Vector( .1, .1, .1 ), hull+1 );
 }
-

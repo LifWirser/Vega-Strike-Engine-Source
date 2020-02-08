@@ -2,35 +2,32 @@
 #define MISSILEGENERIC_H_
 #include "unit_generic.h"
 
-class MissileEffect
-{
+class MissileEffect {
     Vector pos;
     float  damage;
     float  phasedamage;
     float  radius;
     float  radialmultiplier;
     void  *ownerDoNotDereference;
+    void DoApplyDamage( Unit *parent, Unit *un, float distance, float damage_fraction );
 public:
     void ApplyDamage( Unit* );
-    MissileEffect( const Vector &pos, float dam, float pdam, float radius, float radmult, void *owner ) : pos( pos )
-    {
+    MissileEffect( const Vector &pos, float dam, float pdam, float radius, float radmult, void *owner ) : pos( pos ) {
         damage = dam;
         phasedamage = pdam;
         this->radius     = radius;
         radialmultiplier = radmult;
         this->ownerDoNotDereference = owner;
     }
-    float GetRadius() const
-    {
+    float GetRadius() const {
         return radius;
     }
-    const Vector& GetCenter() const
-    {
+    const Vector& GetCenter() const {
         return pos;
     }
 };
-class Missile : public Unit
-{
+
+class Missile : public Unit {
 public:
 protected: Missile( std::vector< Mesh* >m, bool b, int i ) : Unit( m, b, i ) {}
     virtual float ExplosionRadius();
@@ -45,8 +42,7 @@ protected: Missile( std::vector< Mesh* >m, bool b, int i ) : Unit( m, b, i ) {}
     signed char retarget;
 public:
     void Discharge();
-    virtual enum clsptr isUnit() const
-    {
+    virtual enum clsptr isUnit() const {
         return MISSILEPTR;
     }
 
