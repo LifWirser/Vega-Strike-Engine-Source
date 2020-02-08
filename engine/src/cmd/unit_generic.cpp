@@ -2687,8 +2687,14 @@ void Unit::AddVelocity( float difficulty )
     float  lastWarpField = graphicOptions.WarpFieldStrength;
     if (len > .01)      //only get velocity going in DIRECTIOn of cumulative transformation for warp calc...
         v = v*( cumulative_transformation_matrix.getR().Dot( v*(1./len) ) );
-    bool   playa = _Universe->isPlayerStarship( this ) ? true : false;
-    float  warprampuptime = playa ? humanwarprampuptime : compwarprampuptime;
+    bool playa; 
+    if (graphicOptions.WarpRamping || graphicOptions.InWarp == 1 || graphicOptions.RampCounter != 0) { 
+        playa = _Universe->isPlayerStarship( this ) ? true : false; 
+    } else { 
+        playa = false; 
+    } 
+    float warprampuptime = playa ? humanwarprampuptime : compwarprampuptime;
+
     //Warp Turning on/off
     if (graphicOptions.WarpRamping) {
         //Warp Turning on
