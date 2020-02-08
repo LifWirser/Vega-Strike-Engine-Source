@@ -17,10 +17,8 @@
 #include <algorithm>
 #include "lin_time.h"
 #include "unit_const_cache.h"
-#define VS_PI 3.1415926535897931
 
-CSVRow LookupUnitRow( const string &unitname, const string &faction )
-{
+CSVRow LookupUnitRow( const string &unitname, const string &faction ) {
     string hashname = unitname+"__"+faction;
     for (vector< CSVTable* >::reverse_iterator i = unitTables.rbegin(); i != unitTables.rend(); ++i) {
         unsigned int where;
@@ -45,8 +43,7 @@ extern void pushMesh( std::vector< Mesh* >&mesh,
 void addShieldMesh( Unit::XML*xml, const char *filename, const float scale, int faction, class Flightgroup*fg );
 void addRapidMesh( Unit::XML*xml, const char *filename, const float scale, int faction, class Flightgroup*fg );
 
-static void UpgradeUnit( Unit *un, const std::string &upgrades )
-{
+static void UpgradeUnit( Unit *un, const std::string &upgrades ) {
     string::size_type when;
     string::size_type ofs = 0;
     while ( ( when = upgrades.find( '{', ofs ) ) != string::npos ) {
@@ -88,8 +85,7 @@ void AddMeshes( std::vector< Mesh* > &xmeshes,
                 const std::string &meshes,
                 int faction,
                 Flightgroup *fg,
-                vector< unsigned int > *counts )
-{
+                vector< unsigned int > *counts ) {
     string::size_type where, when, wheresf, wherest, ofs = 0;
     if (counts) counts->clear();
     {
