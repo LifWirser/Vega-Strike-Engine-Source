@@ -22,7 +22,6 @@
 #include "cmd/collide2/CSopcodecollider.h"
 
 #include "networking/netclient.h"
-#define VS_PI (3.1415926536)
 
 /*ADDED FOR extensible use of unit pretty print and unit load */
 UNITLOADTYPE current_unit_load_mode = DEFAULT;
