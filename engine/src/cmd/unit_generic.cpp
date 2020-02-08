@@ -169,42 +169,44 @@ void Unit::SetMaxEnergy( float maxen )
     maxenergy = maxen;
 }
 
-Vector Unit::GetWarpVelocity() const
-{
-    Vector VelocityRef( 0, 0, 0 );
-    {
+Vector Unit::GetWarpVelocity() const {
+    Vector VelocityRef( 0, 0, 0 ); {
         Unit *vr = const_cast< UnitContainer* > (&computer.velocity_ref)->GetUnit();
         if (vr)
             VelocityRef = vr->cumulative_velocity;
     }
 
-    //return(cumulative_velocity*graphicOptions.WarpFieldStrength);
-    Vector vel   = cumulative_velocity-VelocityRef;
-    float  speed = vel.Magnitude();
-    //return vel*graphicOptions.WarpFieldStrength;
-    if (speed > 0) {
-        Vector veldir    = vel*(1./speed);
-        Vector facing    = cumulative_transformation_matrix.getR();
-        float  ang       = facing.Dot( veldir );
-        float  warpfield = graphicOptions.WarpFieldStrength;
-        if (ang < 0) warpfield = 1./warpfield;
-        return ang*facing*speed*(warpfield-1)+vel+VelocityRef;
-    } else {return VelocityRef; }
+    Vector vel = cumulative_velocity-VelocityRef;
+    if (graphicOptions.WarpFieldStrength == 1.) {
+        // Short circuit, most ships won't be at warp, so it simplifies math a lot
+        return vel+VelocityRef;
+    } else {
+        //return(cumulative_velocity*graphicOptions.WarpFieldStrength);
+        float  speed = vel.Magnitude();
+        //return vel*graphicOptions.WarpFieldStrength;
+        if (speed > 0) {
+            Vector veldir    = vel*(1./speed);
+            Vector facing    = cumulative_transformation_matrix.getR();
+            float  ang       = facing.Dot( veldir );
+            float  warpfield = graphicOptions.WarpFieldStrength;
+            if (ang < 0) warpfield = 1./warpfield;
+            return facing*(ang*speed*(warpfield-1.))+vel+VelocityRef;
+        } else {
+            return VelocityRef;
+        }
+    }
 }
 
-void Unit::SetPosition( const QVector &pos )
-{
+void Unit::SetPosition( const QVector &pos ) {
     prev_physical_state.position = curr_physical_state.position = pos;
 }
 
-float Unit::DealDamageToHull( const Vector &pnt, float Damage )
-{
+float Unit::DealDamageToHull( const Vector &pnt, float Damage ) {
     float *nullvar = NULL;               //short fix
     return DealDamageToHullReturnArmor( pnt, Damage, nullvar );
 }
 
-void Unit::GetOrientation( Vector &p, Vector &q, Vector &r ) const
-{
+void Unit::GetOrientation( Vector &p, Vector &q, Vector &r ) const {
     Matrix m;
     curr_physical_state.to_matrix( m );
     p = m.getP();
@@ -212,8 +214,7 @@ void Unit::GetOrientation( Vector &p, Vector &q, Vector &r ) const
     r = m.getR();
 }
 
-Vector Unit::GetNetAcceleration()
-{
+Vector Unit::GetNetAcceleration() {
     Vector p, q, r;
     GetOrientation( p, q, r );
     Vector res( NetLocalForce.i*p+NetLocalForce.j*q+NetLocalForce.k*r );
@@ -222,8 +223,7 @@ Vector Unit::GetNetAcceleration()
     return res/GetMass();
 }
 
-float Unit::GetMaxAccelerationInDirectionOf( const Vector &ref, bool afterburn ) const
-{
+float Unit::GetMaxAccelerationInDirectionOf( const Vector &ref, bool afterburn ) const {
     Vector p, q, r;
     GetOrientation( p, q, r );
     Vector lref( ref*p, ref*q, ref*r );
@@ -235,18 +235,15 @@ float Unit::GetMaxAccelerationInDirectionOf( const Vector &ref, bool afterburn )
     return lref.Magnitude()*tm/GetMass();
 }
 
-void Unit::SetVelocity( const Vector &v )
-{
+void Unit::SetVelocity( const Vector &v ) {
     Velocity = v;
 }
 
-void Unit::SetAngularVelocity( const Vector &v )
-{
+void Unit::SetAngularVelocity( const Vector &v ) {
     AngularVelocity = v;
 }
 
-bool Unit::InRange( Unit *target, double &mm, bool cone, bool cap, bool lock ) const
-{
+bool Unit::InRange( Unit *target, double &mm, bool cone, bool cap, bool lock ) const {
     if (this == target || target->CloakVisible() < .8)
         return false;
     if (cone && computer.radar.maxcone > -.98) {
@@ -270,44 +267,37 @@ bool Unit::InRange( Unit *target, double &mm, bool cone, bool cap, bool lock ) c
     return true;
 }
 
-Unit* Unit::Target()
-{
+Unit* Unit::Target() {
     return computer.target.GetUnit();
 }
 
-Unit* Unit::VelocityReference()
-{
+Unit* Unit::VelocityReference() {
     return computer.velocity_ref.GetUnit();
 }
 
-Unit* Unit::Threat()
-{
+Unit* Unit::Threat() {
     return computer.threat.GetUnit();
 }
 
-void Unit::RestoreGodliness()
-{
+void Unit::RestoreGodliness() {
     _Universe->AccessCockpit()->RestoreGodliness();
 }
 
-void Unit::Ref()
-{
+void Unit::Ref() {
 #ifdef CONTAINER_DEBUG
     CheckUnit( this );
 #endif
     ++ucref;
 }
 
-void Unit::BackupState()
-{
+void Unit::BackupState() {
     this->old_state.setPosition( this->curr_physical_state.position );
     this->old_state.setOrientation( this->curr_physical_state.orientation );
     this->old_state.setVelocity( this->Velocity );
     this->old_state.setAcceleration( this->net_accel );
 }
 
-bool isMissile( const weapon_info *weap )
-{
+bool isMissile( const weapon_info *weap ) {
     static bool useProjectile =
         XMLSupport::parse_bool( vs_config->getVariable( "graphics", "hud", "projectile_means_missile", "false" ) );
     if (useProjectile && weap->type == weapon_info::PROJECTILE)
@@ -317,8 +307,7 @@ bool isMissile( const weapon_info *weap )
     return false;
 }
 
-bool flickerDamage( Unit *un, float hullpercent )
-{
+bool flickerDamage( Unit *un, float hullpercent ) {
 #define damagelevel hullpercent
     static double counter     = getNewTime();
     static float  flickertime = XMLSupport::parse_float( vs_config->getVariable( "graphics", "glowflicker", "time", "30" ) );
@@ -356,8 +345,7 @@ bool flickerDamage( Unit *un, float hullpercent )
 }
 
 //SERIOUSLY BROKEN
-Vector ReflectNormal( const Vector &vel, const Vector &norm )
-{
+Vector ReflectNormal( const Vector &vel, const Vector &norm ) {
     //THIS ONE WORKS...but no...we don't want works	return norm * (2*vel.Dot(norm)) - vel;
     return norm*vel.Magnitude();
 }
@@ -365,8 +353,7 @@ Vector ReflectNormal( const Vector &vel, const Vector &norm )
 #define INVERSEFORCEDISTANCE 5400
 extern void abletodock( int dock );
 
-bool CrashForceDock( Unit *thus, Unit *dockingUn, bool force )
-{
+bool CrashForceDock( Unit *thus, Unit *dockingUn, bool force ) {
     Unit *un = dockingUn;
     int   whichdockport = thus->CanDockWithMe( un, force );
     if (whichdockport != -1) {
@@ -621,30 +608,26 @@ void Unit::reactToCollision( Unit *smalle,
     }
 }
 
-void Unit::ActivateJumpDrive( int destination )
-{
+void Unit::ActivateJumpDrive( int destination ) {
     if ( ( ( docked&(DOCKED|DOCKED_INSIDE) ) == 0 ) && jump.drive != -2 )
         jump.drive = destination;
 }
 
-void Unit::DeactivateJumpDrive()
-{
+void Unit::DeactivateJumpDrive() {
     if (jump.drive >= 0)
         jump.drive = -1;
 }
 
 
 
-float rand01()
-{
+float rand01() {
     return (float) rand()/(float) RAND_MAX;
 }
 
 float capship_size = 500;
 
 /* UGLYNESS short fix */
-unsigned int apply_float_to_unsigned_int( float tmp )
-{
+unsigned int apply_float_to_unsigned_int( float tmp ) {
     static unsigned long int seed = 2531011;
     seed += 214013;
     seed %= 4294967295u;
@@ -655,15 +638,13 @@ unsigned int apply_float_to_unsigned_int( float tmp )
     return ans;
 }
 
-std::string accelStarHandler( const XMLType &input, void *mythis )
-{
+std::string accelStarHandler( const XMLType &input, void *mythis ) {
     static float game_speed = XMLSupport::parse_float( vs_config->getVariable( "physics", "game_speed", "1" ) );
     static float game_accel = XMLSupport::parse_float( vs_config->getVariable( "physics", "game_accel", "1" ) );
     return XMLSupport::tostring( *input.w.f/(game_speed*game_accel) );
 }
 
-std::string speedStarHandler( const XMLType &input, void *mythis )
-{
+std::string speedStarHandler( const XMLType &input, void *mythis ) {
     static float game_speed = XMLSupport::parse_float( vs_config->getVariable( "physics", "game_speed", "1" ) );
     return XMLSupport::tostring( (*input.w.f)/game_speed );
 }
@@ -671,26 +652,22 @@ std::string speedStarHandler( const XMLType &input, void *mythis )
 static list< Unit* >Unitdeletequeue;
 static Hashtable< long, Unit, 2095 >deletedUn;
 int deathofvs = 1;
-void CheckUnit( Unit *un )
-{
+void CheckUnit( Unit *un ) {
     if (deletedUn.Get( (long) un ) != NULL)
         while (deathofvs)
             printf( "%ld died", (long) un );
 }
 
-void UncheckUnit( Unit *un )
-{
+void UncheckUnit( Unit *un ) {
     if (deletedUn.Get( (long) un ) != NULL)
         deletedUn.Delete( (long) un );
 }
 
-string GetUnitDir( string filename )
-{
+string GetUnitDir( string filename ) {
     return filename.substr( 0, filename.find( "." ) );
 }
 
-char * GetUnitDir( const char *filename )
-{
+char * GetUnitDir( const char *filename ) {
     char *retval = strdup( filename );
     if (retval[0] == '\0')
         return retval;
@@ -705,8 +682,7 @@ char * GetUnitDir( const char *filename )
 }
 
 //From weapon_xml.cpp
-std::string lookupMountSize( int s )
-{
+std::string lookupMountSize( int s ) {
     std::string result;
     if (s&weapon_info::LIGHT)
         result += "LIGHT ";
@@ -742,8 +718,7 @@ std::string lookupMountSize( int s )
  **** UNIT STUFF
  **********************************************************************************
  */
-Unit::Unit( int /*dummy*/ ) : cumulative_transformation_matrix( identity_matrix )
-{
+Unit::Unit( int /*dummy*/ ) : cumulative_transformation_matrix( identity_matrix ) {
     ZeroAll();
     pImage  = (new UnitImages< void >);
     sound   = new UnitSounds;
@@ -753,8 +728,7 @@ Unit::Unit( int /*dummy*/ ) : cumulative_transformation_matrix( identity_matrix 
     Init();
 }
 
-Unit::Unit() : cumulative_transformation_matrix( identity_matrix )
-{
+Unit::Unit() : cumulative_transformation_matrix( identity_matrix ) {
     ZeroAll();
     pImage  = (new UnitImages< void >);
     sound   = new UnitSounds;
@@ -764,8 +738,7 @@ Unit::Unit() : cumulative_transformation_matrix( identity_matrix )
     Init();
 }
 
-Unit::Unit( std::vector< Mesh* > &meshes, bool SubU, int fact ) : cumulative_transformation_matrix( identity_matrix )
-{
+Unit::Unit( std::vector< Mesh* > &meshes, bool SubU, int fact ) : cumulative_transformation_matrix( identity_matrix ) {
     ZeroAll();
     pImage  = (new UnitImages< void >);
     sound   = new UnitSounds;
@@ -803,8 +776,7 @@ Unit::Unit( const char *filename,
     pilot->SetComm( this );
 }
 
-Unit::~Unit()
-{
+Unit::~Unit() {
     if(pMeshAnimation) {
         delete pMeshAnimation;
         pMeshAnimation = NULL;
@@ -868,8 +840,7 @@ Unit::~Unit()
     meshdata.clear();
 }
 
-void Unit::ZeroAll()
-{
+void Unit::ZeroAll() {
     sound = NULL;
     ucref = 0;
     networked    = false;
@@ -959,8 +930,7 @@ void Unit::ZeroAll()
     pMeshAnimation = NULL;
 }
 
-void Unit::Init()
-{
+void Unit::Init() {
     this->schedule_priority = Unit::scheduleDefault;
     for (unsigned int locind = 0; locind < NUM_COLLIDE_MAPS; ++locind)
         set_null( location[locind] );
@@ -1324,8 +1294,7 @@ void Unit::Init( const char *filename,
 	}	
 }
 
-vector< Mesh* >Unit::StealMeshes()
-{
+vector< Mesh* >Unit::StealMeshes() {
     vector< Mesh* >ret;
 
     Mesh *shield = meshdata.empty() ? NULL : meshdata.back();
@@ -1337,13 +1306,11 @@ vector< Mesh* >Unit::StealMeshes()
     return ret;
 }
 
-static float tmpmax( float a, float b )
-{
+static float tmpmax( float a, float b ) {
     return a > b ? a : b;
 }
 
-bool CheckAccessory( Unit *tur )
-{
+bool CheckAccessory( Unit *tur ) {
     bool accessory = tur->name.get().find( "accessory" ) != string::npos;
     if (accessory) {
         tur->SetAngularVelocity( tur->DownCoordinateLevel( Vector( tur->GetComputerData().max_pitch_up,
@@ -1353,8 +1320,7 @@ bool CheckAccessory( Unit *tur )
     return accessory;
 }
 
-void Unit::calculate_extent( bool update_collide_queue )
-{
+void Unit::calculate_extent( bool update_collide_queue ) {
     int a;
     corner_min = Vector( FLT_MAX, FLT_MAX, FLT_MAX );
     corner_max = Vector( -FLT_MAX, -FLT_MAX, -FLT_MAX );
@@ -1383,8 +1349,7 @@ void Unit::calculate_extent( bool update_collide_queue )
         radial_size = tmpmax( tmpmax( corner_max.i, corner_max.j ), corner_max.k );
 }
 
-StarSystem* Unit::getStarSystem()
-{
+StarSystem* Unit::getStarSystem() {
     if (activeStarSystem) {
         return activeStarSystem;
     } else {
@@ -1396,8 +1361,7 @@ StarSystem* Unit::getStarSystem()
     return _Universe->activeStarSystem();
 }
 
-const StarSystem* Unit::getStarSystem() const
-{
+const StarSystem* Unit::getStarSystem() const {
     if (activeStarSystem) {
         return activeStarSystem;
     } else {
@@ -1409,15 +1373,13 @@ const StarSystem* Unit::getStarSystem() const
     return _Universe->activeStarSystem();
 }
 
-bool preEmptiveClientFire( const weapon_info *wi )
-{
+bool preEmptiveClientFire( const weapon_info *wi ) {
     static bool
         client_side_fire = XMLSupport::parse_bool( vs_config->getVariable( "network", "client_side_fire", "true" ) );
     return client_side_fire && wi->type != weapon_info::BEAM && wi->type != weapon_info::PROJECTILE;
 }
 
-void Unit::Fire( unsigned int weapon_type_bitmask, bool listen_to_owner )
-{
+void Unit::Fire( unsigned int weapon_type_bitmask, bool listen_to_owner ) {
     static bool can_fire_in_spec  = XMLSupport::parse_bool( vs_config->getVariable( "physics", "can_fire_in_spec", "false" ) );
     static bool can_fire_in_cloak = XMLSupport::parse_bool( vs_config->getVariable( "physics", "can_fire_in_cloak", "false" ) );
     static bool verbose_debug     = XMLSupport::parse_bool( vs_config->getVariable( "data", "verbose_debug", "false" ) );
@@ -1580,21 +1542,18 @@ const string Unit::getFgID()
     }
 }
 
-void Unit::SetFaction( int faction )
-{
+void Unit::SetFaction( int faction ) {
     this->faction = faction;
     for (un_iter ui = getSubUnits(); (*ui) != NULL; ++ui)
         (*ui)->SetFaction( faction );
 }
 
 //FIXME Daughter units should be able to be turrets (have y/p/r)
-void Unit::SetResolveForces( bool ys )
-{
+void Unit::SetResolveForces( bool ys ) {
     resolveforces = ys;
 }
 
-void Unit::SetFg( Flightgroup *fg, int fg_subnumber )
-{
+void Unit::SetFg( Flightgroup *fg, int fg_subnumber ) {
     flightgroup = fg;
     flightgroup_subnumber = fg_subnumber;
 }
