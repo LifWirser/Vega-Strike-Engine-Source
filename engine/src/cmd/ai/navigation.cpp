@@ -617,10 +617,10 @@ void AutoLongHaul::Execute()
             deactivatewarp = true;              //turn off drive
     }
 
-    static float min_warpfield_to_enter_warp =
-        XMLSupport::parse_float( vs_config->getVariable( "AI", "min_warp_to_try", "1.5" ) );
-    if (parent->GetMaxWarpFieldStrength(1) < min_warpfield_to_enter_warp)
-        deactivatewarp = true;
+    //static float min_warpfield_to_enter_warp =
+    //    XMLSupport::parse_float( vs_config->getVariable( "AI", "min_warp_to_try", "1.5" ) );
+    //if (parent->GetMaxWarpFieldStrength(1) < min_warpfield_to_enter_warp)
+    //    deactivatewarp = true;
     float maxspeed   = mymax (speed, parent->graphicOptions.WarpFieldStrength*parent->GetComputerData().max_combat_ab_speed);
     double dis     = UnitUtil::getSignificantDistance( parent, target );
     float time_to_destination = dis/maxspeed;
