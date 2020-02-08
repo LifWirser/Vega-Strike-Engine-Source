@@ -19,13 +19,14 @@
 #include "vs_globals.h"
 #include "configxml.h"
 #include "collide.h"
-static bool operator==( const Collidable &a, const Collidable &b )
-{
+#include "vsfilesystem.h"
+
+
+static bool operator==( const Collidable &a, const Collidable &b ) {
     return memcmp( &a, &b, sizeof (Collidable) ) == 0;
 }
 
-void Unit::RemoveFromSystem()
-{
+void Unit::RemoveFromSystem() {
     for (unsigned int locind = 0; locind < NUM_COLLIDE_MAPS; ++locind)
         if ( !is_null( this->location[locind] ) ) {
             if (activeStarSystem == NULL) {
@@ -238,13 +239,11 @@ bool Unit::InsideCollideTree( Unit *smaller,
     return false;
 }
 
-inline float mysqr( float a )
-{
+inline float mysqr( float a ) {
     return a*a;
 }
 
-bool Unit::Collide( Unit *target )
-{
+bool Unit::Collide( Unit *target ) {
     //now first OF ALL make sure they're within bubbles of each other...
     if ( ( Position()-target->Position() ).MagnitudeSquared() > mysqr( radial_size+target->radial_size ) )
         return false;
@@ -305,8 +304,7 @@ bool Unit::Collide( Unit *target )
     return true;
 }
 
-float globQueryShell( QVector st, QVector dir, float radius )
-{
+float globQueryShell( QVector st, QVector dir, float radius ) {
     float temp1 = radius;
     float a, b, c;
     c  = st.Dot( st );
@@ -328,8 +326,7 @@ float globQueryShell( QVector st, QVector dir, float radius )
     return 0.0f;
 }
 
-float globQuerySphere( QVector start, QVector end, QVector pos, float radius )
-{
+float globQuerySphere( QVector start, QVector end, QVector pos, float radius ) {
     QVector st = start-pos;
     if (st.MagnitudeSquared() < radius*radius)
         return 1.0e-6f;
@@ -343,8 +340,7 @@ float globQuerySphere( QVector start, QVector end, QVector pos, float radius )
     *  Not sure yet if that would work though...  more importantly, we might have to modify end in here in order 
     *  to tell calling code that the bolt should stop at a given point. 
 */
-Unit* Unit::rayCollide( const QVector &start, const QVector &end, Vector &norm, float &distance)
-{
+Unit* Unit::rayCollide( const QVector &start, const QVector &end, Vector &norm, float &distance) {
     Unit *tmp;
     float rad = this->rSize();
     if ( ( !SubUnits.empty() ) && graphicOptions.RecurseIntoSubUnitsOnCollision )
@@ -457,8 +453,7 @@ bool Unit::querySphere( const QVector &pnt, float err ) const
     return false;
 }
 
-float Unit::querySphere( const QVector &start, const QVector &end, float min_radius ) const
-{
+float Unit::querySphere( const QVector &start, const QVector &end, float min_radius ) const {
     if ( !SubUnits.empty() ) {
         un_fkiter i = SubUnits.constFastIterator();
         for (const Unit *un; (un = *i); ++i) {
@@ -466,13 +461,17 @@ float Unit::querySphere( const QVector &start, const QVector &end, float min_rad
             if ( ( tmp = un->querySphere( start, end, min_radius ) ) != 0 )
                 return tmp;
         }
+        if (nummesh()) 
+            return querySphereNoRecurse( start, end, min_radius ); 
+        else 
+            return 0.0f; 
+    } else { 
+        return querySphereNoRecurse( start, end, min_radius ); 
     }
-    return querySphereNoRecurse( start, end, min_radius );
 }
 
 //does not check inside sphere
-float Unit::querySphereNoRecurse( const QVector &start, const QVector &end, float min_radius ) const
-{
+float Unit::querySphereNoRecurse( const QVector &start, const QVector &end, float min_radius ) const {
     int    i;
     double tmp;
     for (i = 0; i < nummesh(); i++) {
