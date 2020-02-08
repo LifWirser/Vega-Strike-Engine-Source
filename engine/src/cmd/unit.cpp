@@ -250,12 +250,14 @@ void GameUnit< UnitType >::DrawNow( const Matrix &mato, float lod )
             this->meshdata[i]->Draw( lod, mat, d, cloak );
     }
     Unit *un;
-    for (un_kiter iter = this->SubUnits.constIterator(); (un = *iter); ++iter) {
-        Matrix temp;
-        un->curr_physical_state.to_matrix( temp );
-        Matrix submat;
-        MultMatrix( submat, mat, temp );
-        (un)->DrawNow( submat, lod );
+    if (this->hasSubUnits()) {
+        for (un_iter iter = this->getSubUnits(); (un = *iter); ++iter) {
+            Matrix temp;
+            un->curr_physical_state.to_matrix( temp );
+            Matrix submat;
+            MultMatrix( submat, mat, temp );
+            (un)->DrawNow( submat, lod );
+        }
     }
     float  haloalpha   = 1;
     if (cloak >= 0)
@@ -369,9 +371,10 @@ void GameUnit< UnitType >::Draw( const Transformation &parent, const Matrix &par
         cloak = cloakVal( cloak, this->cloakmin, this->pImage->cloakrate, this->pImage->cloakglass );
     }
     
-    unsigned int i;
-    if ( (this->hull < 0) && (!cam_setup_phase) )
+    unsigned int i, n;
+    if ( (this->hull < 0) && (!cam_setup_phase) ) {
         Explode( true, GetElapsedTime() );
+    }
     
     float damagelevel = 1.0f;
     unsigned char chardamage = 0;
@@ -381,6 +384,7 @@ void GameUnit< UnitType >::Draw( const Transformation &parent, const Matrix &par
     }
     
     bool On_Screen = false;
+    bool Unit_On_Screen = false; 
     if ( ( !(this->invisible&UnitType::INVISUNIT) ) && ( ( !(this->invisible&UnitType::INVISCAMERA) ) || (!myparent) ) ) {
         if (!cam_setup_phase) {
             Camera *camera = _Universe->AccessCamera();
@@ -390,11 +394,11 @@ void GameUnit< UnitType >::Draw( const Transformation &parent, const Matrix &par
                 ( camera->GetVelocity().Magnitude()+this->Velocity.Magnitude() )*SIMULATION_ATOM;
             
             unsigned int numKeyFrames = this->graphicOptions.NumAnimationPoints;
-            for (i = 0; i < this->meshdata.size(); i++) {
+            for (i = 0, n = this->nummesh(); i <= n; i++) {
                 //NOTE LESS THAN OR EQUALS...to cover shield mesh
                 if (this->meshdata[i] == NULL)
                     continue;
-                if ( (int) i == this->nummesh() && (this->meshdata[i]->numFX() == 0 || this->hull < 0) )
+                if (  i == n && (this->meshdata[i]->numFX() == 0 || this->hull < 0) )
                     continue;
                 if (this->meshdata[i]->getBlendDst() == ONE) {
                     if ( (this->invisible&UnitType::INVISGLOW) != 0 )
@@ -440,8 +444,13 @@ void GameUnit< UnitType >::Draw( const Transformation &parent, const Matrix &par
                     }
                 }
             }
-        }
-        {
+
+ 
+            Unit_On_Screen = On_Screen || !!GFXSphereInFrustum(  
+                ct->position, 
+                minmeshradius+this->rSize() ); 
+        } else Unit_On_Screen = true; 
+        if (Unit_On_Screen && this->hasSubUnits()) { 
             Unit  *un;
             double backup = interpolation_blend_factor;
             int    cur_sim_frame = _Universe->activeStarSystem()->getCurrentSimFrame();
@@ -573,20 +582,17 @@ void GameUnit< UnitType >::Draw( const Transformation &parent, const Matrix &par
 }
 
 template < class UnitType >
-void GameUnit< UnitType >::Draw( const Transformation &quat )
-{
+void GameUnit< UnitType >::Draw( const Transformation &quat ) {
     Draw( quat, identity_matrix );
 }
 
 template < class UnitType >
-void GameUnit< UnitType >::Draw()
-{
+void GameUnit< UnitType >::Draw() {
     Draw( identity_transformation, identity_matrix );
 }
 
     
-static float parseFloat( const std::string &s )
-{
+static float parseFloat( const std::string &s ) {
     if ( s.empty() ) {
         VSFileSystem::vs_dprintf(1, "WARNING: invalid float: %s\n", s.c_str());
         return 0.f;
@@ -595,8 +601,7 @@ static float parseFloat( const std::string &s )
     }
 }
 
-static void parseFloat4( const std::string &s, float value[4] )
-{
+static void parseFloat4( const std::string &s, float value[4] ) {
     string::size_type ini = 0, end;
     int i = 0;
     while (i < 4 && ini != string::npos) {
@@ -610,8 +615,7 @@ static void parseFloat4( const std::string &s, float value[4] )
 }
 
 template < class UnitType >
-void GameUnit< UnitType >::applyTechniqueOverrides(const map<string, string> &overrides)
-{
+void GameUnit< UnitType >::applyTechniqueOverrides(const map<string, string> &overrides) {
     for (vector<Mesh*>::iterator mesh = this->meshdata.begin(); mesh != this->meshdata.end(); ++mesh) {
         if (*mesh != NULL) {
             // First check to see if the technique holds any parameter being overridden
@@ -649,8 +653,7 @@ void GameUnit< UnitType >::applyTechniqueOverrides(const map<string, string> &ov
 }
 
 template < class UnitType >
-Matrix GameUnit< UnitType >::WarpMatrix( const Matrix &ctm ) const
-{
+Matrix GameUnit< UnitType >::WarpMatrix( const Matrix &ctm ) const {
     static float cutoff =
         XMLSupport::parse_float( vs_config->getVariable( "graphics", "warp_stretch_cutoff",
                                                          "50000" ) )*XMLSupport::parse_float(
