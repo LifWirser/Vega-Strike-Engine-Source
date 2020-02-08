@@ -321,20 +321,28 @@ vector< Mesh* >Mesh::LoadMeshes( VSFileSystem::VSFile &Inputfile,
     fseek( Inputfile, 4+sizeof (int32bit), SEEK_SET );
     fread( &intbuf, sizeof (int32bit), 1, Inputfile );              //Length of Inputfile
     int32bit Inputlength = VSSwapHostIntToLittle( intbuf );
+    if (Inputlength < sizeof(int32bit)*13 || Inputlength > (1<<30)) {
+        fprintf( stderr, "Corrupt file %s, aborting\n", Inputfile.GetFilename().c_str() );
+        exit( -1 );
+    }
     inmemfile = (chunk32*) malloc( Inputlength+1 );
     if (!inmemfile) {
-        fprintf( stderr, "Buffer allocation failed, Aborting" );
-        exit( -1 );
+        fprintf( stderr, "Buffer allocation failed, Aborting\n" );
+        exit( -2 );
     }
     rewind( Inputfile );
     fread( inmemfile, 1, Inputlength, Inputfile );
     fcloseInput( Inputfile );
 #else
     int32bit Inputlength = Inputfile.Size();
+    if (Inputlength < sizeof(int32bit)*13 || Inputlength > (1<<30)) {
+        fprintf( stderr, "Corrupt file %s, aborting\n", Inputfile.GetFilename().c_str() );
+        abort();
+    }
     inmemfile = (chunk32*) malloc( Inputlength );
     if (!inmemfile) {
-        fprintf( stderr, "Buffer allocation failed, Aborting" );
-        exit( -1 );
+        fprintf( stderr, "Buffer allocation failed, Aborting\n" );
+        exit( -2 );
     }
     Inputfile.Read( inmemfile, Inputlength );
     Inputfile.Close();
