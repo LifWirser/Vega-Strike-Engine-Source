@@ -330,20 +330,6 @@ static char * CreateLists()
     void *fnt = g_game.x_resolution >= 800 ? GLUT_BITMAP_HELVETICA_12 : GLUT_BITMAP_HELVETICA_10;
     static bool use_bit    = false;
     bool use_display_lists = false;
-    /*
-     *  if (use_display_lists) {
-     *  for (unsigned char i=32;i<128;i++){
-     *   lists[i]= GFXCreateList();
-     *   if (use_bit)
-     *     glutBitmapCharacter (fnt,i);
-     *   else
-     *     glutStrokeCharacter (GLUT_STROKE_ROMAN,i);
-     *   if (!GFXEndList ()) {
-     *     lists[i]=0;
-     *   }
-     *  }
-     *  }
-     */
     return lists;
 }
 
@@ -472,15 +458,10 @@ int TextPlane::Draw( const string &newText, int offset, bool startlower, bool fo
         } else if (*text_it >= 32) {
             //always true
             unsigned char myc = *text_it;
-//if (myc=='_') {
-//myc = ' ';
-//}
-            //glutStrokeCharacter (GLUT_STROKE_ROMAN,*text_it);
             retval += potentialincrease;
             potentialincrease = 0;
             int lists = 0;             //display_lists[myc];
             if (lists) {
-//GFXCallList(lists);
             } else {
                 if (use_bit)
                     glutBitmapCharacter( fnt, myc );
@@ -1910,7 +1891,7 @@ void Base::Room::Python::Click( Base *base, float x, float y, int button, int st
 {
     if (state == GLUT_UP)
         Link::Click( base, x, y, button, state );
-//Do nothing...
+    //Do nothing...
 }
 
 //Need this for NEW_GUI.  Can't ifdef it out because it needs to link.
@@ -1964,11 +1945,8 @@ void Base::Room::Talk::Click( Base *base, float x, float y, int button, int stat
             base->othtext.SetText( "" );
         } else if ( say.size() ) {
             curroom = base->curroom;
-//index=base->rooms[curroom]->objs.size();
             int sayindex = rand()%say.size();
             base->rooms[curroom]->objs.push_back( new Room::BaseTalk( say[sayindex], "currentmsg", true ) );
-//((Room::BaseTalk*)(base->rooms[curroom]->objs.back()))->sayindex=(sayindex);
-//((Room::BaseTalk*)(base->rooms[curroom]->objs.back()))->curtime=0;
         } else {
             fprintf( stderr, "\nThere are no things to say...\n" );
         }
@@ -2002,23 +1980,16 @@ void Base::Room::Link::Click( Base *base, float x, float y, int button, int stat
     }
 }
 
-void Base::Draw()
-{
+void Base::Draw() {
     glClear( GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT );
-//GFXColor(0,0,0,0);
     StartGUIFrame( GFXTRUE );
     Room::BaseTalk::hastalked = false;
     rooms[curroom]->Draw( this );
     float x, y;
     curtext.GetCharSize( x, y );
     curtext.SetPos( -.99, -1+(y*1.5) );
-//if (!drawlinkcursor)
-//GFXColor4f(0,1,0,1);
-//else
-//GFXColor4f(1,.333333,0,1);
     curtext.Draw();
     othtext.SetPos( -.99, 1 );
-//GFXColor4f(0,.5,1,1);
     othtext.SetText(
         "To add a texture/ship, right click. To add a link, middle click. Save and exit by clicking a launch link." );
     othtext.Draw();
@@ -2029,8 +2000,7 @@ void Base::Draw()
 
 std::queue< std::string >bases;
 
-void Base::DrawWin()
-{
+void Base::DrawWin() {
     if (is_input) {
         InputDraw();
         return;
@@ -2057,10 +2027,9 @@ void Base::DrawWin()
     glutPostRedisplay();
 }
 
-int main( int argc, char **argv )
-{
+int main( int argc, char **argv ) {
     printf( "Loading...\n" );
-    Base::CurrentBase   = false;
+    Base::CurrentBase = NULL;
     glutInit( &argc, argv );
     glutInitWindowSize( 800, 600 );
     g_game.x_resolution = 800;
@@ -2075,23 +2044,7 @@ int main( int argc, char **argv )
     glutKeyboardFunc( InputKeyDown );
     glutKeyboardUpFunc( InputKeyUp );
     ConditionalCursorDraw( false );
-//glMatrixMode(GL_PROJECTION);
-//glLoadIdentity();
-//glOrtho(-1,1,-1,1,0,100);
-//glMatrixMode(GL_MODELVIEW);
 
-//glOrtho(-1,1,1,-1,0,100);
-//glPushMatrix();
-//glLoadIdentity();
-//glMatrixMode (GL_PROJECTION);
-//glPushMatrix();
-//glLoadIdentity();
-    /*
-     *       glMatrixMode (GL_PROJECTION);
-     *       glPopMatrix();
-     *       glMatrixMode (GL_MODELVIEW);
-     *       glPopMatrix();
-     */
     bool istimeofday = false;
     for (unsigned int i = 1; i < argc; ++i) {
         printf( "." );
@@ -2104,4 +2057,3 @@ int main( int argc, char **argv )
 
     return 0;
 }
-
