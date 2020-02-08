@@ -107,9 +107,9 @@ void Mesh::AddDamageFX( const Vector &pnt, const Vector &norm, const float damag
 }
 void Mesh::UpdateFX( float howmuchtime ) {
     //adjusts lights by TTL, eventually removing them
-    for (int i = LocalFX.size() - 1; i >= 0; i--) {
-        if ( !LocalFX[i].Update( howmuchtime ) ) {
-            LocalFX.erase( LocalFX.begin()+i );
+    for (unsigned int i = LocalFX.size(); i > 0; i--) {
+        if ( !LocalFX[i-1].Update( howmuchtime ) ) {
+            LocalFX.erase( LocalFX.begin()+(i-1) );
         }
     }
 }
