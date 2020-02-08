@@ -26,8 +26,7 @@ class Unit;
  * You're not supposed to hold references to the list across physics frames
  * UnitCollection is designed to be robust to at least 20,000 units.
  */
-class UnitCollection
-{
+class UnitCollection {
 public:
     /*
      * UnitIterator is the "node" class for UnitCollection.
@@ -44,14 +43,12 @@ public:
         UnitIterator( UnitCollection* );
         virtual ~UnitIterator();
 
-        inline bool isDone()
-        {
+        inline bool isDone() {
             if ( col && it != col->u.end() )
                 return false;
             return true;
         }
-        inline bool notDone()
-        {
+        inline bool notDone() {
             return !isDone();
         }
         
@@ -74,19 +71,16 @@ public:
         Unit * next();
 
         UnitIterator& operator=( const UnitIterator& );
-        inline const UnitIterator operator++( int )
-        {
+        inline const UnitIterator operator++( int ) {
             UnitCollection::UnitIterator tmp( *this );
             advance();
             return tmp;
         }
-        inline const UnitIterator& operator++()
-        {
+        inline const UnitIterator& operator++() {
             advance();
             return *this;
         }
-        inline Unit* operator*()
-        {
+        inline Unit* operator*() {
             if ( col && it != col->u.end() )
                 return *it;
             return NULL;
@@ -106,8 +100,7 @@ public:
      * that is to say, these should only be used as temporary iterators
      * in loops where the list is not modified.
      */
-    class ConstIterator
-    {
+    class ConstIterator {
     public: 
         ConstIterator() : col( NULL ) {}
         ConstIterator( const ConstIterator& );
@@ -115,21 +108,18 @@ public:
         ~ConstIterator();
         ConstIterator& operator=( const ConstIterator &orig );
         Unit * next();
-        inline bool isDone()
-        {
+        inline bool isDone() {
             if ( col && it != col->u.end() )
                 return false;
             return true;
         }
-        inline bool notDone()
-        {
+        inline bool notDone() {
              return !isDone();
         }
         void advance();
         const ConstIterator& operator++();
         const ConstIterator operator++( int );
-        inline Unit* operator*() const
-        {
+        inline Unit* operator*() const {
             if ( it != col->u.end() && !col->empty() ) return *it;
             return NULL;
         }
@@ -145,36 +135,31 @@ public:
 
     UnitCollection();
     UnitCollection( const UnitCollection& );
-    inline ~UnitCollection()
-    {
+    inline ~UnitCollection() {
          destr();
     }
 
     /* Iterator creation functions. We use this to set the col pointer */
-    inline UnitIterator createIterator()
-    {
+    inline UnitIterator createIterator() {
         return UnitIterator( this );
     }
-    inline FastIterator fastIterator()
-    {
+    inline FastIterator fastIterator() {
         return FastIterator( this );
     }
-    inline ConstIterator constIterator() const
-    {
+    inline ConstIterator constIterator() const {
         return ConstIterator( this );
     }
-    inline ConstFastIterator constFastIterator() const
-    {
+    inline ConstFastIterator constFastIterator() const {
         return ConstFastIterator( this );
     }
 
     /* Traverses entire list and only inserts if no matches are found
      * Do not use in any fast-code paths */
     void insert_unique( Unit* );
-    inline bool empty() const
-    {
-        if (u.size()-removedIters.size() > 0) return false;
-        return true;
+    inline bool empty() const {
+        if (u.empty()) return true; 
+        else if (removedIters.empty() || u.size() > removedIters.size()) return false; 
+        else return true; 
     }
 
     /* Add a unit or iterator to the front of the list. */
@@ -210,14 +195,12 @@ public:
     bool remove( const class Unit* );
 
     /* Returns number of non-null units in list */
-    inline const int size() const
-    {
+    inline const int size() const {
         return u.size()-removedIters.size();
     }
 
     /* Returns last non-null unit in list. May be Killed() */
-    inline Unit * back()
-    {
+    inline Unit * back() {
         for (std::list< Unit* >::reverse_iterator it = u.rbegin(); it != u.rend(); ++it)
             if (*it)
                 return *it;
@@ -225,8 +208,7 @@ public:
     }
 
     /* Returns first non-null unit in list. May be Killed() */
-    inline Unit * front()
-    {
+    inline Unit * front() {
         for (std::list< Unit* >::iterator it = u.begin(); it != u.end(); ++it)
             if (*it)
                 return *it;
