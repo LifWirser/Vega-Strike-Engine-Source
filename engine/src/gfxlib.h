@@ -84,6 +84,14 @@ void /*GFXDRVAPI*/ GFXPickLights( const Vector &center, const float radius );
 void /*GFXDRVAPI*/ GFXPickLights( const Vector &center, const float radius, vector< int > &lights, const int maxlights, const bool pickglobals );
 ///activates local lights picked by GFXPickLight
 void /*GFXDRVAPI*/ GFXPickLights( vector< int >::const_iterator begin, vector< int >::const_iterator end );
+///loads "lights" with all enabled global lights, computing occlusion to the specified position too
+void /*GFXDRVAPI*/ GFXGlobalLights( vector< int > &lights, const Vector &center, const float radius );
+///loads "lights" with all enabled global lights
+void /*GFXDRVAPI*/ GFXGlobalLights( vector< int > &lights );
+///Sets light position offset, use when centering the camera off-origin
+void /*GFXDRVAPI*/ GFXSetLightOffset( const QVector &offset );
+///Sets light position offset, use when centering the camera off-origin
+QVector /*GFXDRVAPI*/ GFXGetLightOffset();
 ///Sets the light model to have separate specular color (if available)
 GFXBOOL /*GFXDRVAPI*/ GFXSetSeparateSpecularColor( const GFXBOOL spec );
 ///Sets the intensity cutoff before picked lights are ignored
@@ -113,6 +121,10 @@ GFXBOOL /*GFXDRVAPI*/ GFXDisableLight( const int light );
 
 ///Modifies the parameters of the given light
 GFXBOOL /*GFXDRVAPI*/ GFXSetLight( const int light, const enum LIGHT_TARGET, const GFXColor &color );
+
+///Retrieves the parameters of the given light
+const GFXLight& /*GFXDRVAPI*/ GFXGetLight( const int light );
+
 
 /**
  * In the case of shields and other T&L based effects, the global lights
@@ -373,8 +385,6 @@ void GFXGetPolygonOffset( float *factor, float *units );
 void /*GFXDRVAPI*/ GFXPolygonMode( const enum POLYMODE );
 ///Sets the facecull mode
 void /*GFXDRVAPI*/ GFXCullFace( const enum POLYFACE );
-///Begins a polytype
-void /*GFXDRVAPI*/ GFXBegin( const enum POLYTYPE );
 
 ///Specifies a color for henceforth drawn vertices to share
 void /*GFXDRVAPI*/ GFXColorf( const GFXColor &col );
@@ -385,36 +395,44 @@ void /*GFXDRVAPI*/ GFXColor4f( const float r, const float g, const float b, cons
 ///Gets the current color
 GFXColor /*GFXDRVAPI*/ GFXColorf();
 
-///Specifies a pair of texture coordinates for given vertex
-void /*GFXDRVAPI*/ GFXTexCoord2f( const float s, const float t );
-
-///Specifies four texture coordinates for a given vertex (2 textures)
-void /*GFXDRVAPI*/ GFXTexCoord4f( const float s, const float t, const float u, const float v );
-///Specifies four texture coordinates for a given vertex (3 textures)
-void /*GFXDRVAPI*/ GFXTexCoord224f( const float s,
-                                    const float t,
-                                    const float s2,
-                                    const float t2,
-                                    const float s3,
-                                    const float t3,
-                                    const float u3,
-                                    const float v3 );
-/// Specifies a normal with 3 floats
-void /*GFXDRVAPI*/ GFXNormal3f( const float i, const float j, const float k );
-///Specifies a notmal with 1 vector
-void /*GFXDRVAPI*/ GFXNormal( const Vector &n );
-
-///Specifies a vertex with 3 floats
-void /*GFXDRVAPI*/ GFXVertex3f( const float x, const float y, const float z = 1.0 );
-void /*GFXDRVAPI*/ GFXVertex3f( const double x, const double y, const double z = 1.0 );
-void /*GFXDRVAPI*/ GFXVertex3d( const double x, const double y, const double z = 1.0 );
-
-///Specifies a vertex with a vector
-void /*GFXDRVAPI*/ GFXVertexf( const Vector &v );
-void /*GFXDRVAPI*/ GFXVertexf( const QVector &v );
-///Ends the current set of polytypes
-void /*GFXDRVAPI*/ GFXEnd();
 void /*GFXDRVAPI*/ GFXCircle( float x, float y, float r1, float r2 );
+unsigned int /*GFXDRVAPI*/ PolyLookup( POLYTYPE poly );
+void /*GFXDRVAPI*/ GFXDraw( POLYTYPE type, const float data[], int vnum,
+    int vsize = 3, int csize = 0, int tsize0 = 0, int tsize1 = 0 );
+
+void /*GFXDRVAPI*/ GFXDrawElements( POLYTYPE type, const float data[], int vnum, const unsigned char indices[], int nelem,
+    int vsize = 3, int csize = 0, int tsize0 = 0, int tsize1 = 0 );
+
+void /*GFXDRVAPI*/ GFXDrawElements( POLYTYPE type, const float data[], int vnum, const unsigned short indices[], int nelem,
+    int vsize = 3, int csize = 0, int tsize0 = 0, int tsize1 = 0 );
+
+void /*GFXDRVAPI*/ GFXDrawElements( POLYTYPE type, const float data[], int vnum, const unsigned int indices[], int nelem,
+    int vsize = 3, int csize = 0, int tsize0 = 0, int tsize1 = 0 );
+
+template <int VSIZE, int CSIZE, int TSIZE0, int TSIZE1>
+void GFXDraw( POLYTYPE type, const VertexBuilder< float, VSIZE, 0, CSIZE, TSIZE0, TSIZE1 > &buffer)
+{
+    if (buffer.size() > 0)
+        GFXDraw( type, buffer.buffer_pointer(), buffer.size(), VSIZE, CSIZE, TSIZE0, TSIZE1 );
+}
+
+template <typename ITYPE, int VSIZE, int CSIZE, int TSIZE0, int TSIZE1>
+void GFXDrawElements( POLYTYPE type, const VertexBuilder< float, VSIZE, 0, CSIZE, TSIZE0, TSIZE1 > &buffer, const ITYPE *indices, int nelements)
+{
+    if (buffer.size() > 0 && nelements > 0)
+        GFXDrawElements( type, buffer.buffer_pointer(), buffer.size(), indices, nelements, VSIZE, CSIZE, TSIZE0, TSIZE1 );
+}
+
+template <typename ITYPE, int VSIZE, int CSIZE, int TSIZE0, int TSIZE1>
+void GFXDrawElements( POLYTYPE type, const VertexBuilder< float, VSIZE, 0, CSIZE, TSIZE0, TSIZE1 > &buffer, const std::vector<ITYPE> &indices)
+{
+    if (buffer.size() > 0 && indices.size() > 0)
+        GFXDrawElements( type, buffer.buffer_pointer(), buffer.size(), &indices[0], indices.size(), VSIZE, CSIZE, TSIZE0, TSIZE1 );
+}
+
+///Bind VBO data, noop if VBO not supported
+void GFXBindBuffer(unsigned int vbo_data);
+void GFXBindElementBuffer(unsigned int element_data);
 ///Optimizes a list to reuse repeated vertices!
 void GFXOptimizeList( GFXVertex *old, int numV, GFXVertex **newlist, int *numnewVertices, unsigned int **indices );
 

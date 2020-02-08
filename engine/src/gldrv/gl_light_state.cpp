@@ -11,6 +11,18 @@
 #define M_PI 3.14159265358979323846264338328
 #endif
 
+QVector _light_offset(0,0,0);
+
+void GFXSetLightOffset( const QVector &offset )
+{
+    _light_offset = offset;
+}
+
+QVector GFXGetLightOffset()
+{
+    return _light_offset;
+}
+
 void GFXUploadLightState( int max_light_location, int active_light_array, int apparent_light_size_array, bool shader, vector<int>::const_iterator begin, vector<int>::const_iterator end )
 {
     // FIXME: (klauss) Very bad thing: static variables initialized with heap-allocated arrays...
@@ -47,7 +59,7 @@ void GFXUploadLightState( int max_light_location, int active_light_array, int ap
                 // For two, scaling would be nullified when scaling both distance
                 // and light size, so it would only waste time.
                 
-                QVector lightPos = light.getPosition() - modelview.p;
+                QVector lightPos = light.getPosition() - modelview.p + _light_offset;
                 
                 double lightDistance = lightPos.Magnitude();
                 double lightSize = light.getSize() * 0.5;
@@ -224,8 +236,13 @@ void gfx_light::Kill()
 
 void gfx_light::SendGLPosition( const GLenum target ) const
 {
-    float v[4] = {vect[0], vect[1], vect[2], 1};
+    float v[4] = {vect[0] + _light_offset.x, vect[1] + _light_offset.y, vect[2] + _light_offset.z, 1};
     glLightfv( target, GL_POSITION, v );
+}
+
+void gfx_light::UpdateGLLight() const
+{
+    ContextSwitchClobberLight(target, -1);
 }
 
 inline void gfx_light::ContextSwitchClobberLight( const GLenum gltarg, const int original ) const
@@ -234,9 +251,18 @@ inline void gfx_light::ContextSwitchClobberLight( const GLenum gltarg, const int
     glLightf( gltarg, GL_LINEAR_ATTENUATION, attenuate[1]*atten1scale );
     glLightf( gltarg, GL_QUADRATIC_ATTENUATION, attenuate[2]*atten2scale );
 
+    float v[4];
+#define glLightfvAttenuated( gltarg, attr, value, attenuation ) do { \
+        v[0]=value[0]*attenuation; \
+        v[1]=value[1]*attenuation; \
+        v[2]=value[2]*attenuation; \
+        v[3]=value[3]*attenuation; \
+        glLightfv( gltarg, attr, v ); \
+    } while(0)
+    
     SendGLPosition( gltarg );
-    glLightfv( gltarg, GL_DIFFUSE, diffuse );
-    glLightfv( gltarg, GL_SPECULAR, specular );
+    glLightfvAttenuated( gltarg, GL_DIFFUSE, diffuse, occlusion );
+    glLightfvAttenuated( gltarg, GL_SPECULAR, specular, occlusion );
     glLightfv( gltarg, GL_AMBIENT, ambient );
     if (original != -1) {
         gfx_light *orig = &( (*_llights)[GLLights[original].index] );
@@ -244,6 +270,7 @@ inline void gfx_light::ContextSwitchClobberLight( const GLenum gltarg, const int
         GLLights[original].index = -1;
     }
 }
+
 
 inline void gfx_light::FinesseClobberLight( const GLenum gltarg, const int original )
 {
