@@ -1,7 +1,8 @@
 // -*- mode: c++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
-#include "config.h"
 #include <set>
+#include <math.h>
+#include "config.h"
 #include "configxml.h"
 #include "audiolib.h"
 #include "unit_generic.h"
@@ -4614,7 +4615,7 @@ void Unit::Kill( bool erasefromsave, bool quitting )
                 flightgroup->leader.SetUnit( NULL );
 
 #ifdef DESTRUCTDEBUG
-        VSFileSystem::vs_dprintf( 3, "%s 0x%x - %d\n", name.c_str(), this, Unitdeletequeue.size() );
+        VSFileSystem::vs_dprintf( 3, "%s 0x%x - %d\n", name.get().c_str(), this, Unitdeletequeue.size() );
 #endif
     }
 }
@@ -4661,7 +4662,7 @@ void Unit::UnRef()
         //delete
         Unitdeletequeue.push_back( this );
 #ifdef DESTRUCTDEBUG
-        VSFileSystem::vs_fprintf( stderr, "%s 0x%x - %d\n", name.c_str(), this, Unitdeletequeue.size() );
+        VSFileSystem::vs_fprintf( stderr, "%s 0x%x - %d\n", name.get().c_str(), this, Unitdeletequeue.size() );
 #endif
     }
 }
@@ -4815,7 +4816,7 @@ float Unit::RShieldData() const
     switch (shield.number)
     {
     case 2:
-        return 0;                                //don't react to stuff we have no data on
+        return 0; //don't react to stuff we have no data on
 
     case 4:
         {
@@ -4843,9 +4844,9 @@ void Unit::ProcessDeleteQueue()
 {
     while ( !Unitdeletequeue.empty() ) {
 #ifdef DESTRUCTDEBUG
-        VSFileSystem::vs_fprintf( stderr, "Eliminatin' 0x%x - %d", Unitdeletequeue.back(), Unitdeletequeue.size() );
+        VSFileSystem::vs_fprintf( stderr, "Eliminating 0x%x - %d", Unitdeletequeue.back(), Unitdeletequeue.size() );
         fflush( stderr );
-        VSFileSystem::vs_fprintf( stderr, "Eliminatin' %s\n", Unitdeletequeue.back()->name.c_str() );
+        VSFileSystem::vs_fprintf( stderr, "Eliminating %s\n", Unitdeletequeue.back()->name.get().c_str() );
 #endif
 #ifdef DESTRUCTDEBUG
         if ( Unitdeletequeue.back()->isSubUnit() )
@@ -4897,9 +4898,8 @@ const Unit * makeTemplateUpgrade( string name, int faction )
     free( unitdir );
     const Unit *lim   = UnitConstCache::getCachedConst( StringIntKey( limiternam, faction ) );
     if (!lim) {
-        lim =
-            UnitConstCache::setCachedConst( StringIntKey( limiternam,
-                                                          faction ), UnitFactory::createUnit( limiternam.c_str(), true, faction ) );
+        lim = UnitConstCache::setCachedConst( StringIntKey( limiternam,
+                faction ), UnitFactory::createUnit( limiternam.c_str(), true, faction ) );
     }
     if (lim->name == LOAD_FAILED)
         lim = NULL;
@@ -6317,8 +6317,7 @@ bool Unit::UpgradeMounts( const Unit *up,
         if (up->mounts[i].status == Mount::ACTIVE || up->mounts[i].status == Mount::INACTIVE) {
             //make sure since we're offsetting the starting we don't overrun the mounts
             bool isammo = ( string::npos != string( up->name ).find( "_ammo" ) );             //is this ammo for a weapon rather than an actual weapon
-            bool ismissiletype =
-                ( 0
+            bool ismissiletype = ( 0
                  != ( up->mounts[i].type->size
                      &(weapon_info::CAPSHIPHEAVYMISSILE|weapon_info::SPECIALMISSILE|weapon_info::MEDIUMMISSILE
                        |weapon_info::LIGHTMISSILE
@@ -6359,7 +6358,8 @@ bool Unit::UpgradeMounts( const Unit *up,
                                 int tmpammo = mounts[jmod].ammo;
                                 if (mounts[jmod].ammo != -1 && up->mounts[i].ammo != -1) {
                                     tmpammo += up->mounts[i].ammo;
-                                    if (templ) {
+                                    // e0c948d2d (2019-10-17) crts@gmx.net Fix reloading of guns independently of mount volume.
+                                    /*if (templ) {
                                         if (templ->GetNumMounts() > jmod) {
                                             if (templ->mounts[jmod].volume != -1) {
                                                 if (templ->mounts[jmod].volume < mounts[jmod].type->volume*tmpammo) {
@@ -6367,13 +6367,50 @@ bool Unit::UpgradeMounts( const Unit *up,
                                                         (int) floor( .125
                                                                     +( (0
                                                                         +templ->mounts[jmod].volume)
-                                                                      /mounts[jmod].type->volume ) );
+                                                                      /mounts[jmod].type->volume ) );*/
+                                    // e0c948d2d (2019-10-17) crts@gmx.net Fix reloading of guns independently of mount volume.
+                                    if (ismissiletype) {
+                                        if (templ) {
+                                            if (templ->GetNumMounts() > jmod) {
+                                                if (templ->mounts[jmod].volume != -1) {
+                                                    if (templ->mounts[jmod].volume < mounts[jmod].type->volume*tmpammo) {
+                                                        tmpammo = (int) floor( 0.125 + ( (0 + templ->mounts[jmod].volume)
+                                                          /mounts[jmod].type->volume ) );
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                    if (tmpammo*mounts[jmod].type->volume > mounts[jmod].volume)
-                                        tmpammo = (int) floor( .125+( (0+mounts[jmod].volume)/mounts[jmod].type->volume ) );
+                                        // e0c948d2d (2019-10-17) crts@gmx.net Fix reloading of guns independently of mount volume.
+                                        if (tmpammo*mounts[jmod].type->volume > mounts[jmod].volume)
+                                            tmpammo = (int) floor( .125+( (0+mounts[jmod].volume)/mounts[jmod].type->volume ) );
+                                    } else {
+                                        std::string ammoname = up->name.get();
+                                        std::size_t ammopos = ammoname.find("_ammo");
+                                        std::string weaponname = ammoname.substr(0, ammopos);
+
+                                        // Do NOT delete this Unit because it will be either fetched
+                                        // from a cache or - if it has to be created - it will
+                                        // be automatically put in a cache.
+                                        // Deletion will corrupt the cache!
+                                        const Unit * weapon = getUnitFromUpgradeName(weaponname);
+
+                                        if (weapon == NULL || weapon->name == LOAD_FAILED) {
+                                            // this should not happen
+                                            VSFileSystem::vs_dprintf(1, "UpgradeMount(): FAILED to obtain weapon: %s\n", weaponname.c_str());
+                                            cancompletefully = false;
+                                            break;
+                                        }
+
+                                        int maxammo = weapon->mounts[0].ammo;
+
+                                        if (tmpammo > maxammo) {
+                                            tmpammo = maxammo;
+                                        } // e0c948d2d (2019-10-17) crts@gmx.net
+                        }
+                                    // e0c948d2d (2019-10-17) crts@gmx.net Fix reloading of guns independently of mount volume.
+                                    //if (tmpammo*mounts[jmod].type->volume > mounts[jmod].volume)
+                                    //    tmpammo = (int) floor( .125+( (0+mounts[jmod].volume)/mounts[jmod].type->volume ) );
+
                                     if (tmpammo > mounts[jmod].ammo) {
                                         cancompletefully = true;
                                         if (touchme)
@@ -6476,9 +6513,9 @@ bool Unit::UpgradeMounts( const Unit *up,
                 }
             }
         }
-    if ( i < up->GetNumMounts() )
-        cancompletefully = false;          //if we didn't reach the last mount that we wished to upgrade, we did not fully complete
-
+    if ( i < up->GetNumMounts() ) {
+        cancompletefully = false; //if we didn't reach the last mount that we wished to upgrade, we did not fully complete
+    }
     return cancompletefully;
 }
 

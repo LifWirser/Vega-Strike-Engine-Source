@@ -1,4 +1,7 @@
-archives/
+engine/boost/
+!engine/boost/1_64/CMakeLists.txt
+.vscode/
 bin/
+/**/build/
 engine/build/
 *.pyc

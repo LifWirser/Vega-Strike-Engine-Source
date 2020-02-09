@@ -547,6 +547,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-std=gnu++03)
 endif()
 
+
 # Debug target block.
 SET(CMAKE_CXX_FLAGS_DEBUG " ${CPU_OPTS} -DNV_CUBE_MAP -DBOOST_PYTHON_NO_PY_SIGNATURES -include config.h -pipe -g2 -std=c++11 -Wall -Werror -O0 -fvisibility=hidden" CACHE STRING
     "Flags used by the C++ compiler during debug builds."
@@ -564,7 +565,6 @@ ELSE("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     MARK_AS_ADVANCED( FORCE
     	CMAKE_CXX_FLAGS_DEBUG )
 ENDIF("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-
 
 
 # Release Target block
@@ -606,7 +606,6 @@ ELSE("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
 	MARK_AS_ADVANCED( FORCE
 		CMAKE_CXX_FLAGS_RELWITHDEBINFO )
 ENDIF("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-
 
 
 # Maintainer Target block
